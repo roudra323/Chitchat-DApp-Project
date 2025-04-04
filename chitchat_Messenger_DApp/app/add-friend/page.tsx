@@ -76,33 +76,43 @@ export default function AddFriendPage() {
     setSearchResults([]);
 
     try {
-      // Get all user addresses
-      const tempAddressess = await contracts.chitChat.getAllUsers();
-      const addresses = tempAddressess.filter(
-        (userAddress: Address) => userAddress != address
+      // Get all user addresses except self
+      const tempAddresses = await contracts.chitChat.getAllUsers();
+      const filteredAddresses = tempAddresses.filter(
+        (userAddress: Address) => userAddress !== address
       );
 
-      // Filter addresses based on search query
-      const filteredAddresses = addresses.filter((address: Address) =>
-        address.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      // Fetch user info and filter by name OR address
+      const userPromises = filteredAddresses.map(async (addr: Address) => {
+        const [name, ipfsHash] = await contracts.chitChat?.getUserInfo(addr);
+        const statusCode = await contracts.chitChat?.friendRequestStatus(addr);
 
-      // Get user info for each filtered address
-      const userPromises = filteredAddresses.map(async (address: Address) => {
-        const [name, ipfsHash] = await contracts?.chitChat?.getUserInfo(
-          address
-        );
+        const status =
+          statusCode === 2
+            ? "friend"
+            : statusCode === 1 || statusCode === 3
+            ? "pending"
+            : "not_friend";
 
         return {
-          address,
+          address: addr,
           name,
           ipfsHash,
-          status: "not_friend", // You'll need to implement friend status logic
+          status,
         } as UserResult;
       });
 
-      const results = await Promise.all(userPromises);
-      setSearchResults(results);
+      const users = await Promise.all(userPromises);
+
+      // Now filter based on name or address
+      const lowerQuery = searchQuery.toLowerCase();
+      const filteredResults = users.filter(
+        (user) =>
+          user.name.toLowerCase().includes(lowerQuery) ||
+          user.address.toLowerCase().includes(lowerQuery)
+      );
+
+      setSearchResults(filteredResults);
     } catch (error: any) {
       console.error("Search error:", error);
       toast({
@@ -115,8 +125,22 @@ export default function AddFriendPage() {
     }
   };
 
-  const handleSendRequest = (userId: string) => {
-    setSentRequests((prev) => new Set(prev).add(userId));
+  const handleSendRequest = async (address: Address) => {
+    console.log("Sending friend request to:", address);
+    // setSentRequests((prev) => new Set(prev).add(userId));
+
+    const tx = await contracts?.chitChat?.sendFriendRequest(address);
+    await tx.wait();
+
+    if (!tx) {
+      toast({
+        title: "Transaction failed",
+        description: "Failed to send friend request",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSentRequests((prev) => new Set(prev).add(address));
 
     toast({
       title: "Friend request sent",
@@ -147,7 +171,7 @@ export default function AddFriendPage() {
       );
     } else {
       return (
-        <Button onClick={() => handleSendRequest(user.address)}>
+        <Button onClick={() => handleSendRequest(user.address as Address)}>
           <UserPlus className="h-4 w-4 mr-2" />
           Add Friend
         </Button>

@@ -32,6 +32,25 @@
     },
     {
         "type": "function",
+        "name": "friendRequestStatus",
+        "inputs": [
+            {
+                "name": "_friend",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint8",
+                "internalType": "enum ChitChat.RequestStatus"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
         "name": "getAllUsers",
         "inputs": [],
         "outputs": [
