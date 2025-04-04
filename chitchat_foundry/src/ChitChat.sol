@@ -231,16 +231,45 @@ contract ChitChat {
         return registeredUsers;
     }
 
+    /**
+     * @notice Checks if the specified address is a friend of the caller.
+     * @dev The caller must be a registered user.
+     * @param _friend The address of the friend to check.
+     * @return bool Returns true if the specified address is a friend, otherwise false.
+     */
     function isFriend(
         address _friend
     ) external view userExists(msg.sender) returns (bool) {
         return users[msg.sender].friends[_friend];
     }
 
+    /**
+     * @notice Retrieves the friend request status for the specified address.
+     * @dev The caller must be a registered user.
+     * @param _friend The address of the friend whose request status is being checked.
+     * @return RequestStatus The status of the friend request (e.g., Pending, Accepted, Rejected).
+     */
+    function friendRequestStatus(
+        address _friend
+    ) external view userExists(msg.sender) returns (RequestStatus) {
+        return users[msg.sender].friendRequests[_friend];
+    }
+
+    /**
+     * @notice Checks if a user is registered in the system.
+     * @param _user The address of the user to check.
+     * @return bool Returns true if the user is registered, otherwise false.
+     */
     function isUserRegistered(address _user) external view returns (bool) {
         return bytes(users[_user].name).length > 0;
     }
 
+    /**
+     * @notice Retrieves the user information for the specified address.
+     * @param _user The address of the user whose information is being retrieved.
+     * @return name The name of the user.
+     * @return ipfsHash The IPFS hash of the user's profile picture.
+     */
     function getUserInfo(
         address _user
     ) external view returns (string memory name, string memory ipfsHash) {
