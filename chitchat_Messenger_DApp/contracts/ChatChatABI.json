@@ -1,0 +1,500 @@
+[
+    {
+        "type": "function",
+        "name": "acceptFriendRequest",
+        "inputs": [
+            {
+                "name": "_sender",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "createAccount",
+        "inputs": [
+            {
+                "name": "_name",
+                "type": "string",
+                "internalType": "string"
+            },
+            {
+                "name": "_contentCID",
+                "type": "string",
+                "internalType": "string"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "getAllUsers",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address[]",
+                "internalType": "address[]"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getEncryptedMessageHistory",
+        "inputs": [
+            {
+                "name": "_friend",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "tuple[]",
+                "internalType": "struct ChitChat.IPFSMetadata[]",
+                "components": [
+                    {
+                        "name": "contentCID",
+                        "type": "string",
+                        "internalType": "string"
+                    },
+                    {
+                        "name": "uploadedAt",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "isEncrypted",
+                        "type": "bool",
+                        "internalType": "bool"
+                    }
+                ]
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getFriends",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "tuple[]",
+                "internalType": "struct ChitChat.Friend[]",
+                "components": [
+                    {
+                        "name": "addr",
+                        "type": "address",
+                        "internalType": "address"
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "internalType": "string"
+                    }
+                ]
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getProfilePicture",
+        "inputs": [
+            {
+                "name": "_user",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "tuple",
+                "internalType": "struct ChitChat.IPFSMetadata",
+                "components": [
+                    {
+                        "name": "contentCID",
+                        "type": "string",
+                        "internalType": "string"
+                    },
+                    {
+                        "name": "uploadedAt",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "isEncrypted",
+                        "type": "bool",
+                        "internalType": "bool"
+                    }
+                ]
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getSharedKeyFrom",
+        "inputs": [
+            {
+                "name": "_friend",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bytes",
+                "internalType": "bytes"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getUserInfo",
+        "inputs": [
+            {
+                "name": "_user",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "name",
+                "type": "string",
+                "internalType": "string"
+            },
+            {
+                "name": "ipfsHash",
+                "type": "string",
+                "internalType": "string"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "isFriend",
+        "inputs": [
+            {
+                "name": "_friend",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "isUserRegistered",
+        "inputs": [
+            {
+                "name": "_user",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "rejectFriendRequest",
+        "inputs": [
+            {
+                "name": "_sender",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "removeFriend",
+        "inputs": [
+            {
+                "name": "_friend",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "sendEncryptedMessage",
+        "inputs": [
+            {
+                "name": "_recipient",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "_encryptedMessageHash",
+                "type": "string",
+                "internalType": "string"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "sendFriendRequest",
+        "inputs": [
+            {
+                "name": "_recipient",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "shareSymmetricKey",
+        "inputs": [
+            {
+                "name": "_friend",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "_encryptedKey",
+                "type": "bytes",
+                "internalType": "bytes"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "sharedSymmetricKeys",
+        "inputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bytes",
+                "internalType": "bytes"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "updateProfilePicture",
+        "inputs": [
+            {
+                "name": "_ipfsHash",
+                "type": "string",
+                "internalType": "string"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "event",
+        "name": "EncryptedMessageStored",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "receiver",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "ipfsHash",
+                "type": "string",
+                "indexed": false,
+                "internalType": "string"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "FriendRemoved",
+        "inputs": [
+            {
+                "name": "user",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "friend",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "FriendRequestAccepted",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "receiver",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "FriendRequestRejected",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "receiver",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "FriendRequestSent",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "receiver",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "ProfilePictureUpdated",
+        "inputs": [
+            {
+                "name": "user",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "ipfsHash",
+                "type": "string",
+                "indexed": false,
+                "internalType": "string"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "SymmetricKeyShared",
+        "inputs": [
+            {
+                "name": "sender",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "receiver",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "UserRegistered",
+        "inputs": [
+            {
+                "name": "user",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "name",
+                "type": "string",
+                "indexed": false,
+                "internalType": "string"
+            },
+            {
+                "name": "ipfsHash",
+                "type": "string",
+                "indexed": false,
+                "internalType": "string"
+            }
+        ],
+        "anonymous": false
+    }
+]
