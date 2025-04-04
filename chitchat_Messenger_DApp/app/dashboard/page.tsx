@@ -25,7 +25,8 @@ import { useEthersWithRainbow } from "@/hooks/useEthersWithRainbow";
 export default function DashboardPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const { address } = useEthersWithRainbow();
+  const { address, contracts } = useEthersWithRainbow();
+  const [fRequestCount, setFRequestCount] = useState(0);
 
   return (
     <div className="flex flex-col h-screen bg-background">
