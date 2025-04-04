@@ -45,11 +45,21 @@ contract ChitChat {
 
     // === Events ===
 
-    event UserRegistered(address indexed user, string name, string ipfsHash);
-    event FriendRequestSent(address indexed sender, address indexed receiver);
+    event UserRegistered(
+        address indexed user,
+        string name,
+        string ipfsHash,
+        uint256 timestamp
+    );
+    event FriendRequestSent(
+        address indexed sender,
+        address indexed receiver,
+        uint256 timestamp
+    );
     event FriendRequestAccepted(
         address indexed sender,
-        address indexed receiver
+        address indexed receiver,
+        uint256 timestamp
     );
     event ProfilePictureUpdated(address indexed user, string ipfsHash);
     event EncryptedMessageStored(
@@ -57,13 +67,22 @@ contract ChitChat {
         address indexed receiver,
         string ipfsHash
     );
-    event SymmetricKeyShared(address indexed sender, address indexed receiver);
+    event SymmetricKeyShared(
+        address indexed sender,
+        address indexed receiver,
+        uint256 timestamp
+    );
 
     event FriendRequestRejected(
         address indexed sender,
-        address indexed receiver
+        address indexed receiver,
+        uint256 timestamp
     );
-    event FriendRemoved(address indexed user, address indexed friend);
+    event FriendRemoved(
+        address indexed user,
+        address indexed friend,
+        uint256 timestamp
+    );
 
     // === Modifiers ===
 
@@ -100,7 +119,7 @@ contract ChitChat {
             isEncrypted: false
         });
 
-        emit UserRegistered(msg.sender, _name, _contentCID);
+        emit UserRegistered(msg.sender, _name, _contentCID, block.timestamp);
     }
 
     /// @notice Updates the profile picture using an IPFS hash
@@ -142,7 +161,7 @@ contract ChitChat {
         users[msg.sender].friendRequests[_recipient] = RequestStatus.Sent;
         users[_recipient].friendRequests[msg.sender] = RequestStatus.Sent;
 
-        emit FriendRequestSent(msg.sender, _recipient);
+        emit FriendRequestSent(msg.sender, _recipient, block.timestamp);
     }
 
     /// @notice Accepts a friend request
@@ -161,7 +180,7 @@ contract ChitChat {
         users[msg.sender].friendRequests[_sender] = RequestStatus.Accepted;
         users[_sender].friendRequests[msg.sender] = RequestStatus.Accepted;
 
-        emit FriendRequestAccepted(_sender, msg.sender);
+        emit FriendRequestAccepted(_sender, msg.sender, block.timestamp);
     }
 
     /// @notice Rejects a friend request
@@ -177,7 +196,7 @@ contract ChitChat {
         users[msg.sender].friendRequests[_sender] = RequestStatus.Rejected;
         users[_sender].friendRequests[msg.sender] = RequestStatus.Rejected;
 
-        emit FriendRequestRejected(_sender, msg.sender);
+        emit FriendRequestRejected(_sender, msg.sender, block.timestamp);
     }
 
     /// @notice Removes a friend from the user's friend list
@@ -195,7 +214,7 @@ contract ChitChat {
         users[msg.sender].friendRequests[_friend] = RequestStatus.None;
         users[_friend].friendRequests[msg.sender] = RequestStatus.None;
 
-        emit FriendRemoved(msg.sender, _friend);
+        emit FriendRemoved(msg.sender, _friend, block.timestamp);
     }
 
     /// @notice Returns all friends of the caller
@@ -337,7 +356,7 @@ contract ChitChat {
 
         sharedSymmetricKeys[msg.sender][_friend] = _encryptedKey;
 
-        emit SymmetricKeyShared(msg.sender, _friend);
+        emit SymmetricKeyShared(msg.sender, _friend, block.timestamp);
     }
 
     /// @notice Returns the encrypted symmetric key shared by a friend

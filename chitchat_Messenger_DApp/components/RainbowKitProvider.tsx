@@ -1,7 +1,6 @@
-// components/RainbowKitProvider.tsx
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import {
   RainbowKitProvider as RKProvider,
   darkTheme,
@@ -18,6 +17,13 @@ interface RainbowKitProviderProps {
 }
 
 export function RainbowKitProvider({ children }: RainbowKitProviderProps) {
+  // Create client only on the client side to avoid hydration mismatch
+  const [queryClient] = useState(() => new QueryClient());
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
