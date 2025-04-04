@@ -1,33 +1,49 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useRef, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { ArrowLeft, MoreVertical, Lock, Send, Paperclip } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { ChatMessage } from "@/components/chat-message"
-import { OnlineStatusIndicator } from "@/components/online-status-indicator"
-import { useSocket } from "@/lib/socket-context"
+import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  MoreVertical,
+  Lock,
+  Send,
+  Paperclip,
+  Bell,
+  Settings,
+  LogOut,
+  ArrowLeft,
+  Search,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChatMessage } from "@/components/chat-message";
+import { OnlineStatusIndicator } from "@/components/online-status-indicator";
+import { useSocket } from "@/lib/socket-context";
+import { Badge } from "@/components/ui/badge";
+import { ConnectWalletButton } from "@/components/ui/connect-button";
+import { ChatList } from "@/components/chat-list";
 
 interface Message {
-  id: string
-  content: string
-  sender: "me" | "them"
-  timestamp: string
-  status: "sent" | "delivered" | "read"
+  id: string;
+  content: string;
+  sender: "me" | "them";
+  timestamp: string;
+  status: "sent" | "delivered" | "read";
 }
 
 export default function ChatPage({ params }: { params: { id: string } }) {
-  const router = useRouter()
-  const { socket, isConnected } = useSocket()
-  const [message, setMessage] = useState("")
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const router = useRouter();
+  const { socket, isConnected } = useSocket();
+  const [message, setMessage] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -53,14 +69,16 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     },
     {
       id: "4",
-      content: "Yeah, I love that it's all end-to-end encrypted. No one can read our messages except us.",
+      content:
+        "Yeah, I love that it's all end-to-end encrypted. No one can read our messages except us.",
       sender: "me",
       timestamp: "10:36 AM",
       status: "read",
     },
     {
       id: "5",
-      content: "Exactly! And using wallet-based authentication means no more passwords to remember.",
+      content:
+        "Exactly! And using wallet-based authentication means no more passwords to remember.",
       sender: "them",
       timestamp: "10:38 AM",
       status: "read",
@@ -72,42 +90,45 @@ export default function ChatPage({ params }: { params: { id: string } }) {
       timestamp: "10:39 AM",
       status: "delivered",
     },
-  ])
+  ]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     if (socket && isConnected) {
       // Join the chat room
-      socket.emit("join:chat", { chatId: params.id })
+      socket.emit("join:chat", { chatId: params.id });
 
       // Listen for new messages
       socket.on("chat:message", (newMessage: Message) => {
-        setMessages((prev) => [...prev, newMessage])
-      })
+        setMessages((prev) => [...prev, newMessage]);
+      });
 
       // Listen for typing indicators
-      socket.on("chat:typing", (data: { userId: string; isTyping: boolean }) => {
-        // Handle typing indicator
-        console.log("User is typing:", data)
-      })
+      socket.on(
+        "chat:typing",
+        (data: { userId: string; isTyping: boolean }) => {
+          // Handle typing indicator
+          console.log("User is typing:", data);
+        }
+      );
 
       return () => {
         // Leave the chat room
-        socket.emit("leave:chat", { chatId: params.id })
+        socket.emit("leave:chat", { chatId: params.id });
 
         // Remove event listeners
-        socket.off("chat:message")
-        socket.off("chat:typing")
-      }
+        socket.off("chat:message");
+        socket.off("chat:typing");
+      };
     }
-  }, [socket, isConnected, params.id])
+  }, [socket, isConnected, params.id]);
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -115,39 +136,50 @@ export default function ChatPage({ params }: { params: { id: string } }) {
         id: Date.now().toString(),
         content: message,
         sender: "me",
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
         status: "sent",
-      }
+      };
 
-      setMessages([...messages, newMessage])
-      setMessage("")
+      setMessages([...messages, newMessage]);
+      setMessage("");
 
       // Send message via socket if connected
       if (socket && isConnected) {
         socket.emit("chat:send", {
           chatId: params.id,
           message: newMessage,
-        })
+        });
       }
 
       // Simulate message being delivered
       setTimeout(() => {
-        setMessages((prev) => prev.map((msg) => (msg.id === newMessage.id ? { ...msg, status: "delivered" } : msg)))
-      }, 1000)
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === newMessage.id ? { ...msg, status: "delivered" } : msg
+          )
+        );
+      }, 1000);
 
       // Simulate message being read
       setTimeout(() => {
-        setMessages((prev) => prev.map((msg) => (msg.id === newMessage.id ? { ...msg, status: "read" } : msg)))
-      }, 3000)
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === newMessage.id ? { ...msg, status: "read" } : msg
+          )
+        );
+      }, 3000);
     }
-  }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage()
+      e.preventDefault();
+      handleSendMessage();
     }
-  }
+  };
 
   // Emit typing indicator
   const handleTyping = () => {
@@ -155,67 +187,108 @@ export default function ChatPage({ params }: { params: { id: string } }) {
       socket.emit("chat:typing", {
         chatId: params.id,
         isTyping: true,
-      })
+      });
 
       // Clear typing indicator after a delay
       setTimeout(() => {
         socket.emit("chat:typing", {
           chatId: params.id,
           isTyping: false,
-        })
-      }, 2000)
+        });
+      }, 2000);
     }
-  }
+  };
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen bg-background">
-        <AppSidebar />
+    <div className="flex flex-col h-screen bg-background">
+      {/* Header */}
+      <header className="border-b py-3 px-6 flex justify-between items-center bg-background z-10">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/dashboard")}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
 
-        <main className="flex-1 flex flex-col overflow-hidden">
-          <header className="border-b p-4 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger className="md:hidden" />
-              <Button variant="ghost" size="icon" className="md:hidden" onClick={() => router.push("/dashboard")}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+          <Avatar className="h-10 w-10">
+            <AvatarImage src="/placeholder.svg?height=40&width=40" />
+            <AvatarFallback>JD</AvatarFallback>
+          </Avatar>
 
-              <Avatar className="h-10 w-10">
-                <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback>JD</AvatarFallback>
-              </Avatar>
-
-              <div>
-                <h2 className="font-semibold">Jane Doe</h2>
-                <div className="flex items-center gap-1">
-                  <OnlineStatusIndicator userId={params.id} />
-                  <span className="text-xs text-muted-foreground">
-                    {useSocket().onlineFriends.has(params.id) ? "Online" : "Offline"}
-                  </span>
-                </div>
-              </div>
+          <div>
+            <h2 className="font-semibold">Jane Doe</h2>
+            <div className="flex items-center gap-1">
+              <OnlineStatusIndicator userId={params.id} />
+              <span className="text-xs text-muted-foreground">
+                {useSocket().onlineFriends.has(params.id)
+                  ? "Online"
+                  : "Offline"}
+              </span>
             </div>
+          </div>
+        </div>
 
-            <div className="flex items-center gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-primary">
-                      <Lock className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>End-to-end encrypted</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+        <div className="flex items-center gap-4">
+          <ConnectWalletButton />
 
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-5 w-5" />
-              </Button>
+          <div className="relative">
+            <Bell className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground transition-colors" />
+            <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center">
+              3
+            </Badge>
+          </div>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-primary">
+                  <Lock className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>End-to-end encrypted</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/settings")}
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
+
+          <Button variant="ghost" size="icon">
+            <MoreVertical className="h-5 w-5" />
+          </Button>
+
+          <Button variant="ghost" size="icon" onClick={() => router.push("/")}>
+            <LogOut className="h-5 w-5" />
+          </Button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden flex">
+        {/* Left Panel - Conversations List (hidden on mobile) */}
+        <div className="w-1/3 border-r flex-col hidden md:flex">
+          <div className="p-4 border-b">
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search conversations..." className="pl-9" />
             </div>
-          </header>
+          </div>
 
+          <div className="flex-1 overflow-y-auto p-4">
+            <ChatList searchQuery="" />
+          </div>
+        </div>
+
+        {/* Right Panel - Chat */}
+        <div className="flex-1 flex flex-col">
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg) => (
               <ChatMessage
@@ -244,14 +317,17 @@ export default function ChatPage({ params }: { params: { id: string } }) {
                 className="flex-1"
               />
 
-              <Button size="icon" disabled={!message.trim()} onClick={handleSendMessage}>
+              <Button
+                size="icon"
+                disabled={!message.trim()}
+                onClick={handleSendMessage}
+              >
                 <Send className="h-5 w-5" />
               </Button>
             </div>
           </footer>
-        </main>
+        </div>
       </div>
-    </SidebarProvider>
-  )
+    </div>
+  );
 }
-
