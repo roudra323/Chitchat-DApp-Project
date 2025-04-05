@@ -16,17 +16,34 @@ import {
   LogOut,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FriendRequestCard } from "@/components/friend-request-card";
 import { ChatList } from "@/components/chat-list";
-import { FriendsList } from "@/components/friends-list";
 import { ConnectWalletButton } from "@/components/ui/connect-button";
 import { useEthersWithRainbow } from "@/hooks/useEthersWithRainbow";
+import { useChitChatEvents } from "@/hooks/useChitChatEvents";
+import { FriendsList } from "@/components/friends-list";
+import { FriendRequestsList } from "@/components/friend-requests-list";
+import { useEffect } from "react";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const { address, contracts } = useEthersWithRainbow();
-  const [fRequestCount, setFRequestCount] = useState(0);
+  const { friendRequests } = useChitChatEvents();
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
+
+  // Get pending request count for current user
+  useEffect(() => {
+    if (!address || !friendRequests.length) {
+      setPendingRequestCount(0);
+      return;
+    }
+
+    const count = friendRequests.filter(
+      (req) => req.receiver.toLowerCase() === address.toLowerCase()
+    ).length;
+
+    setPendingRequestCount(count);
+  }, [address, friendRequests]);
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -42,9 +59,11 @@ export default function DashboardPage() {
 
           <div className="relative">
             <Bell className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground transition-colors" />
-            <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center">
-              3
-            </Badge>
+            {pendingRequestCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center">
+                {pendingRequestCount}
+              </Badge>
+            )}
           </div>
 
           <Button
@@ -117,9 +136,11 @@ export default function DashboardPage() {
                   >
                     <UserPlus className="h-4 w-4" />
                     Requests
-                    <Badge className="h-5 w-5 absolute -top-1 -right-1 flex items-center justify-center">
-                      3
-                    </Badge>
+                    {pendingRequestCount > 0 && (
+                      <Badge className="h-5 w-5 absolute -top-1 -right-1 flex items-center justify-center">
+                        {pendingRequestCount}
+                      </Badge>
+                    )}
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -142,23 +163,7 @@ export default function DashboardPage() {
                 value="requests"
                 className="p-4 h-full overflow-y-auto space-y-4 pr-2 mt-0"
               >
-                <div className="space-y-4">
-                  <FriendRequestCard
-                    name="Alex Johnson"
-                    username="alexj"
-                    timestamp="2 hours ago"
-                  />
-                  <FriendRequestCard
-                    name="Maria Garcia"
-                    username="maria_g"
-                    timestamp="Yesterday"
-                  />
-                  <FriendRequestCard
-                    name="Sam Wilson"
-                    username="samw"
-                    timestamp="3 days ago"
-                  />
-                </div>
+                <FriendRequestsList />
               </TabsContent>
             </Tabs>
           </div>

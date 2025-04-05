@@ -20,7 +20,6 @@ import {
 import {
   ArrowLeft,
   Upload,
-  Key,
   Moon,
   Sun,
   Bell,
@@ -33,8 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { ConnectWalletButton } from "@/components/ui/connect-button";
 import Image from "next/image";
-
-import { useEthersWithRainbow } from "@/hooks/useEthersWithRainbow";
+import { SecurityTab } from "./security-tab";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -43,8 +41,6 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState(true);
   const [readReceipts, setReadReceipts] = useState(true);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-
-  const { address, contracts, isConnected } = useEthersWithRainbow();
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -61,13 +57,6 @@ export default function SettingsPage() {
     toast({
       title: "Profile updated",
       description: "Your profile has been updated successfully",
-    });
-  };
-
-  const handleRegenerateKeys = () => {
-    toast({
-      title: "Keys regenerated",
-      description: "Your encryption keys have been regenerated",
     });
   };
 
@@ -202,15 +191,9 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Connected Wallet</CardTitle>
-                  {isConnected ? (
-                    <CardDescription>
-                      Your currently connected wallet
-                    </CardDescription>
-                  ) : (
-                    <CardDescription>
-                      Connect your wallet to access all features
-                    </CardDescription>
-                  )}
+                  <CardDescription>
+                    Your currently connected wallet
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="bg-muted p-4 rounded-md flex items-center justify-between">
@@ -226,9 +209,7 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-medium">MetaMask</p>
                         <p className="text-xs text-muted-foreground">
-                          {isConnected
-                            ? `Connected: ${address}`
-                            : "Not connected"}
+                          0x1a2...3b4c
                         </p>
                       </div>
                     </div>
@@ -241,86 +222,7 @@ export default function SettingsPage() {
             </TabsContent>
 
             <TabsContent value="security" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Encryption Keys</CardTitle>
-                  <CardDescription>
-                    Manage your encryption keys for secure messaging
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-muted p-4 rounded-md flex items-start gap-3">
-                    <Key className="h-5 w-5 text-primary mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">
-                        Your encryption keys
-                      </p>
-                      <p className="text-xs text-muted-foreground mb-2">
-                        These keys are used to encrypt and decrypt your
-                        messages. They are stored locally and never shared.
-                      </p>
-                      <div className="text-xs bg-background p-2 rounded border">
-                        <p className="font-mono">Public Key: 0x8f4e...2a1b</p>
-                        <p className="font-mono mt-1">
-                          Created: March 15, 2025
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Button variant="outline" onClick={handleRegenerateKeys}>
-                    <Key className="h-4 w-4 mr-2" />
-                    Regenerate Keys
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Security Settings</CardTitle>
-                  <CardDescription>
-                    Configure additional security settings
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="auto-lock">
-                        Auto-lock after inactivity
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Automatically lock the app after 10 minutes of
-                        inactivity
-                      </p>
-                    </div>
-                    <Switch id="auto-lock" defaultChecked />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="biometric">
-                        Biometric authentication
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Use fingerprint or face recognition to unlock the app
-                      </p>
-                    </div>
-                    <Switch id="biometric" />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="device-sync">
-                        Device synchronization
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Sync your encryption keys across your devices
-                      </p>
-                    </div>
-                    <Switch id="device-sync" defaultChecked />
-                  </div>
-                </CardContent>
-              </Card>
+              <SecurityTab />
             </TabsContent>
 
             <TabsContent value="notifications" className="space-y-6">
