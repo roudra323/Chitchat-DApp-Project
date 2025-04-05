@@ -22,6 +22,7 @@ import {
   LogOut,
   ArrowLeft,
   Search,
+  Key,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ChatMessage } from "@/components/chat-message";
@@ -30,6 +31,8 @@ import { useSocket } from "@/lib/socket-context";
 import { Badge } from "@/components/ui/badge";
 import { ConnectWalletButton } from "@/components/ui/connect-button";
 import { ChatList } from "@/components/chat-list";
+import { KeyExchangeModal } from "@/components/key-exchange-modal";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -41,10 +44,21 @@ interface Message {
 
 export default function ChatPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const { toast } = useToast();
   const { socket, isConnected } = useSocket();
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [messages, setMessages] = useState<Message[]>([
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [friendName, setFriendName] = useState("Jane Doe");
+  const [friendImage, setFriendImage] = useState(
+    "/placeholder.svg?height=40&width=40"
+  );
+  const [isKeyExchangeModalOpen, setIsKeyExchangeModalOpen] = useState(false);
+  const [hasExchangedKeys, setHasExchangedKeys] = useState(false);
+  const [isCheckingKeys, setIsCheckingKeys] = useState(true);
+
+  // Sample messages for demo
+  const sampleMessages: Message[] = [
     {
       id: "1",
       content: "Hey there! How's it going?",
@@ -90,7 +104,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
       timestamp: "10:39 AM",
       status: "delivered",
     },
-  ]);
+  ];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -99,6 +113,43 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Check if keys have been exchanged with this friend
+  useEffect(() => {
+    const checkKeyExchange = async () => {
+      setIsCheckingKeys(true);
+      try {
+        // In a real implementation, this would check the blockchain
+        // const myKeyToFriend = await contracts.chitChat.sharedSymmetricKeys(address, params.id);
+        // const friendKeyToMe = await contracts.chitChat.getSharedKeyFrom(params.id);
+        // const keysExchanged = myKeyToFriend.length > 0 && friendKeyToMe.length > 0;
+
+        // Simulate blockchain check
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // For demo purposes, we'll assume keys haven't been exchanged
+        const keysExchanged = false;
+        setHasExchangedKeys(keysExchanged);
+
+        if (!keysExchanged) {
+          // Show a toast notification that keys need to be exchanged
+          toast({
+            title: "Key exchange required",
+            description: "You need to exchange encryption keys before chatting",
+          });
+        } else {
+          // If keys have been exchanged, load the messages
+          setMessages(sampleMessages);
+        }
+      } catch (error) {
+        console.error("Error checking key exchange:", error);
+      } finally {
+        setIsCheckingKeys(false);
+      }
+    };
+
+    checkKeyExchange();
+  }, [params.id, toast]);
 
   useEffect(() => {
     if (socket && isConnected) {
@@ -131,9 +182,15 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   }, [socket, isConnected, params.id]);
 
   const handleSendMessage = () => {
+    if (!hasExchangedKeys) {
+      setIsKeyExchangeModalOpen(true);
+      return;
+    }
+
     if (message.trim()) {
       const newMessage: Message = {
-        id: Date.now().toString(),
+        // id: Date.now().toString(),
+        id: "12121",
         content: message,
         sender: "me",
         timestamp: new Date().toLocaleTimeString([], {
@@ -199,6 +256,12 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     }
   };
 
+  const handleKeyExchangeComplete = () => {
+    setHasExchangedKeys(true);
+    // Load messages after key exchange
+    setMessages(sampleMessages);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Header */}
@@ -213,12 +276,12 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           </Button>
 
           <Avatar className="h-10 w-10">
-            <AvatarImage src="/placeholder.svg?height=40&width=40" />
-            <AvatarFallback>JD</AvatarFallback>
+            <AvatarImage src={friendImage} />
+            <AvatarFallback>{friendName.charAt(0)}</AvatarFallback>
           </Avatar>
 
           <div>
-            <h2 className="font-semibold">Jane Doe</h2>
+            <h2 className="font-semibold">{friendName}</h2>
             <div className="flex items-center gap-1">
               <OnlineStatusIndicator userId={params.id} />
               <span className="text-xs text-muted-foreground">
@@ -243,12 +306,29 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-primary">
-                  <Lock className="h-5 w-5" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={
+                    hasExchangedKeys ? "text-green-500" : "text-yellow-500"
+                  }
+                  onClick={() =>
+                    !hasExchangedKeys && setIsKeyExchangeModalOpen(true)
+                  }
+                >
+                  {hasExchangedKeys ? (
+                    <Lock className="h-5 w-5" />
+                  ) : (
+                    <Key className="h-5 w-5" />
+                  )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>End-to-end encrypted</p>
+                <p>
+                  {hasExchangedKeys
+                    ? "End-to-end encrypted"
+                    : "Key exchange required"}
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -289,45 +369,87 @@ export default function ChatPage({ params }: { params: { id: string } }) {
 
         {/* Right Panel - Chat */}
         <div className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((msg) => (
-              <ChatMessage
-                key={msg.id}
-                content={msg.content}
-                sender={msg.sender}
-                timestamp={msg.timestamp}
-                status={msg.status}
-              />
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-
-          <footer className="border-t p-4">
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon">
-                <Paperclip className="h-5 w-5" />
-              </Button>
-
-              <Input
-                placeholder="Type a message..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onInput={handleTyping}
-                className="flex-1"
-              />
-
-              <Button
-                size="icon"
-                disabled={!message.trim()}
-                onClick={handleSendMessage}
-              >
-                <Send className="h-5 w-5" />
-              </Button>
+          {isCheckingKeys ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+                <p className="text-muted-foreground">
+                  Checking encryption status...
+                </p>
+              </div>
             </div>
-          </footer>
+          ) : !hasExchangedKeys ? (
+            <div className="flex-1 flex items-center justify-center p-6">
+              <div className="bg-muted p-6 rounded-lg max-w-md text-center">
+                <div className="h-16 w-16 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Key className="h-8 w-8 text-yellow-600 dark:text-yellow-300" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">
+                  Key Exchange Required
+                </h3>
+                <p className="text-muted-foreground mb-6">
+                  Before you can chat with {friendName}, you need to exchange
+                  encryption keys to enable secure end-to-end encrypted
+                  messaging.
+                </p>
+                <Button onClick={() => setIsKeyExchangeModalOpen(true)}>
+                  <Key className="h-4 w-4 mr-2" />
+                  Exchange Encryption Keys
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.map((msg) => (
+                  <ChatMessage
+                    key={msg.id}
+                    content={msg.content}
+                    sender={msg.sender}
+                    timestamp={msg.timestamp}
+                    status={msg.status}
+                  />
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+
+              <footer className="border-t p-4">
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon">
+                    <Paperclip className="h-5 w-5" />
+                  </Button>
+
+                  <Input
+                    placeholder="Type a message..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onInput={handleTyping}
+                    className="flex-1"
+                  />
+
+                  <Button
+                    size="icon"
+                    disabled={!message.trim()}
+                    onClick={handleSendMessage}
+                  >
+                    <Send className="h-5 w-5" />
+                  </Button>
+                </div>
+              </footer>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Key Exchange Modal */}
+      <KeyExchangeModal
+        isOpen={isKeyExchangeModalOpen}
+        onClose={() => setIsKeyExchangeModalOpen(false)}
+        friendAddress={params.id}
+        friendName={friendName}
+        onKeyExchangeComplete={handleKeyExchangeComplete}
+      />
     </div>
   );
 }

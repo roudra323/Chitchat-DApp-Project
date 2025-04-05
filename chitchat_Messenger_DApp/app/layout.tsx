@@ -21,6 +21,7 @@ export default function RootLayout({
       <body>
         <RainbowKitProvider>
           <ThemeProvider attribute="class" defaultTheme="light">
+            {/* getting the error here */}
             {children}
             <Toaster />
           </ThemeProvider>

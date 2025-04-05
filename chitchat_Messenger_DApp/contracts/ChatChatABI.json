@@ -371,7 +371,7 @@
             {
                 "name": "ipfsHash",
                 "type": "string",
-                "indexed": false,
+                "indexed": true,
                 "internalType": "string"
             }
         ],
@@ -396,7 +396,7 @@
             {
                 "name": "timestamp",
                 "type": "uint256",
-                "indexed": false,
+                "indexed": true,
                 "internalType": "uint256"
             }
         ],
@@ -421,7 +421,7 @@
             {
                 "name": "timestamp",
                 "type": "uint256",
-                "indexed": false,
+                "indexed": true,
                 "internalType": "uint256"
             }
         ],
@@ -446,7 +446,7 @@
             {
                 "name": "timestamp",
                 "type": "uint256",
-                "indexed": false,
+                "indexed": true,
                 "internalType": "uint256"
             }
         ],
@@ -471,7 +471,7 @@
             {
                 "name": "timestamp",
                 "type": "uint256",
-                "indexed": false,
+                "indexed": true,
                 "internalType": "uint256"
             }
         ],
@@ -490,7 +490,7 @@
             {
                 "name": "ipfsHash",
                 "type": "string",
-                "indexed": false,
+                "indexed": true,
                 "internalType": "string"
             }
         ],
@@ -515,7 +515,7 @@
             {
                 "name": "timestamp",
                 "type": "uint256",
-                "indexed": false,
+                "indexed": true,
                 "internalType": "uint256"
             }
         ],
@@ -534,7 +534,7 @@
             {
                 "name": "name",
                 "type": "string",
-                "indexed": false,
+                "indexed": true,
                 "internalType": "string"
             },
             {
@@ -546,7 +546,7 @@
             {
                 "name": "timestamp",
                 "type": "uint256",
-                "indexed": false,
+                "indexed": true,
                 "internalType": "uint256"
             }
         ],

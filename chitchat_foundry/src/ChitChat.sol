@@ -47,41 +47,41 @@ contract ChitChat {
 
     event UserRegistered(
         address indexed user,
-        string name,
+        string indexed name,
         string ipfsHash,
-        uint256 timestamp
+        uint256 indexed timestamp
     );
     event FriendRequestSent(
         address indexed sender,
         address indexed receiver,
-        uint256 timestamp
+        uint256 indexed timestamp
     );
     event FriendRequestAccepted(
         address indexed sender,
         address indexed receiver,
-        uint256 timestamp
+        uint256 indexed timestamp
     );
-    event ProfilePictureUpdated(address indexed user, string ipfsHash);
+    event ProfilePictureUpdated(address indexed user, string indexed ipfsHash);
     event EncryptedMessageStored(
         address indexed sender,
         address indexed receiver,
-        string ipfsHash
+        string indexed ipfsHash
     );
     event SymmetricKeyShared(
         address indexed sender,
         address indexed receiver,
-        uint256 timestamp
+        uint256 indexed timestamp
     );
 
     event FriendRequestRejected(
         address indexed sender,
         address indexed receiver,
-        uint256 timestamp
+        uint256 indexed timestamp
     );
     event FriendRemoved(
         address indexed user,
         address indexed friend,
-        uint256 timestamp
+        uint256 indexed timestamp
     );
 
     // === Modifiers ===
