@@ -21,7 +21,9 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUploadToPinata } from "@/hooks/useUploadToPinata";
 import { useEthersWithRainbow } from "@/hooks/useEthersWithRainbow";
+import { getPublicKeyFromSignature } from "@/lib/getPublicKey";
 import { ethers } from "ethers";
+import { Address } from "viem";
 
 export default function CreateAccountPage() {
   const router = useRouter();
@@ -36,7 +38,8 @@ export default function CreateAccountPage() {
   const { uploadFile, isUploading } = useUploadToPinata();
   const [avatarCID, setAvatarCID] = useState<string | null>(null);
 
-  const { isConnected, contracts, signer } = useEthersWithRainbow();
+  const { isConnected, contracts, signer, provider, address } =
+    useEthersWithRainbow();
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -88,20 +91,15 @@ export default function CreateAccountPage() {
     try {
       setIsSigningMessage(true);
       // Request the user to sign a message
-      const message =
-        "Sign this message to generate your public key for ChitChat";
-      const signature = await signer.signMessage(message);
+      const { publicKey, recoveredAddress } = await getPublicKeyFromSignature(
+        provider as ethers.providers.JsonRpcBatchProvider,
+        address as Address
+      );
 
-      // In a real implementation, you would derive the public key from the signature
-      // For demo purposes, we'll just use a placeholder
-      const derivedPublicKey =
-        "0x" +
-        Array.from(ethers.utils.arrayify(signature))
-          .slice(0, 20)
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join("");
+      setPublicKey(publicKey);
 
-      setPublicKey(derivedPublicKey);
+      console.log("Public key:", publicKey);
+      console.log("Recovered address:", recoveredAddress);
 
       toast({
         title: "Public key generated",
