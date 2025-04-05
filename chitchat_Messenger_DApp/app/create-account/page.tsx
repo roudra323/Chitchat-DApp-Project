@@ -21,6 +21,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUploadToPinata } from "@/hooks/useUploadToPinata";
 import { useEthersWithRainbow } from "@/hooks/useEthersWithRainbow";
+import { ethers } from "ethers";
 
 export default function CreateAccountPage() {
   const router = useRouter();
@@ -29,11 +30,13 @@ export default function CreateAccountPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [publicKey, setPublicKey] = useState<string | null>(null);
+  const [isSigningMessage, setIsSigningMessage] = useState(false);
 
   const { uploadFile, isUploading } = useUploadToPinata();
   const [avatarCID, setAvatarCID] = useState<string | null>(null);
 
-  const { isConnected, contracts } = useEthersWithRainbow();
+  const { isConnected, contracts, signer } = useEthersWithRainbow();
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -72,7 +75,60 @@ export default function CreateAccountPage() {
     }
   };
 
+  const handleSignMessage = async () => {
+    if (!isConnected || !signer) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please connect your wallet to continue",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSigningMessage(true);
+      // Request the user to sign a message
+      const message =
+        "Sign this message to generate your public key for ChitChat";
+      const signature = await signer.signMessage(message);
+
+      // In a real implementation, you would derive the public key from the signature
+      // For demo purposes, we'll just use a placeholder
+      const derivedPublicKey =
+        "0x" +
+        Array.from(ethers.utils.arrayify(signature))
+          .slice(0, 20)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+
+      setPublicKey(derivedPublicKey);
+
+      toast({
+        title: "Public key generated",
+        description: "Your public key has been successfully generated",
+      });
+    } catch (error: any) {
+      console.error("Signing error:", error);
+      toast({
+        title: "Signing failed",
+        description: error.message || "Failed to sign message",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSigningMessage(false);
+    }
+  };
+
   const handleCreateAccount = async () => {
+    if (!publicKey) {
+      toast({
+        title: "Public key required",
+        description: "Please sign the message to generate your public key",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!username) {
       toast({
         title: "Username required",
@@ -194,12 +250,36 @@ export default function CreateAccountPage() {
 
           <div className="bg-muted p-4 rounded-md flex items-start gap-3">
             <Key className="h-5 w-5 text-primary mt-0.5" />
-            <div>
-              <p className="text-sm font-medium">Encryption Keys</p>
-              <p className="text-xs text-muted-foreground">
-                We'll automatically generate secure encryption keys for your
-                messages. These keys are stored locally and never shared.
+            <div className="w-full">
+              <p className="text-sm font-medium">Public Key Required</p>
+              <p className="text-xs text-muted-foreground mb-2">
+                You need to sign a message with your wallet to generate your
+                public key. This key is required for end-to-end encrypted
+                messaging.
               </p>
+
+              {publicKey ? (
+                <div className="bg-background p-2 rounded border text-xs font-mono truncate">
+                  {publicKey}
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-1"
+                  onClick={handleSignMessage}
+                  disabled={isSigningMessage}
+                >
+                  {isSigningMessage ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                      Signing...
+                    </>
+                  ) : (
+                    <>Sign Message</>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
 
@@ -241,7 +321,7 @@ export default function CreateAccountPage() {
           </Button>
           <Button
             onClick={handleCreateAccount}
-            disabled={isCreating || isUploading}
+            disabled={isCreating || isUploading || isSigningMessage}
           >
             {isCreating ? (
               <>
