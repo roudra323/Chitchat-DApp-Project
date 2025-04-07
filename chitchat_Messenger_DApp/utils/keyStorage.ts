@@ -52,7 +52,12 @@ export function loadSymmetricKey(friendAddress: string): Uint8Array | null {
 export function hasSymmetricKey(friendAddress: string): boolean {
     return localStorage.getItem(`${NAMESPACE.SYMMETRIC_KEY}${friendAddress}`) !== null;
 }
-
+/**
+ * Clear symmetric key for a specific friend
+ */
+export function clearSymmetricKey(friendAddress: string): void {
+    localStorage.removeItem(`${NAMESPACE.SYMMETRIC_KEY}${friendAddress}`);
+}
 /**
  * Clear all keys for an account (for logout)
  */

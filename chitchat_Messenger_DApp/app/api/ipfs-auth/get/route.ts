@@ -6,6 +6,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const cid = searchParams.get('cid');
 
+    console.log('CID FROM BACLEND:', cid);
+
     if (!cid) {
         return NextResponse.json(
             { message: 'CID is required' },
@@ -17,11 +19,12 @@ export async function GET(request: NextRequest) {
         // Initialize Pinata SDK
         const pinata = new PinataSDK({
             pinataJwt: process.env.PINATA_JWT ?? '',
-            pinataGateway: process.env.GATEWAY_URL ?? '',
+            pinataGateway: process.env.GATEWAY_URL ?
+                process.env.GATEWAY_URL.replace(/\/$/, '') : 'https://gateway.pinata.cloud',
         });
 
         // Get file from Pinata
-        const file = await pinata.gateways.public.get(cid);
+        const file = await pinata.gateways.public.get(cid.trim());
 
 
         if (!file) {

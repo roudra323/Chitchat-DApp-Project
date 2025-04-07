@@ -9,7 +9,8 @@ import ChitChatABI from "../contracts/ChatChatABI.json"; // Adjust the path as n
 
 // Contract address constants
 const CHITCHAT_CONTRACT_ADDRESS =
-  process.env.NEXT_PUBLIC_CHITCHAT_CONTRACT_ADDRESS || "0x..."; // Replace with your contract address
+  process.env.NEXT_PUBLIC_CHITCHAT_CONTRACT_ADDRESS ||
+  "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Replace with your contract address
 
 export function useEthersWithRainbow() {
   const { address, isConnected, isConnecting, isDisconnected } = useAccount();

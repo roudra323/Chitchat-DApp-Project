@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-import { use } from "react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +41,7 @@ import { useChitChatEvents } from "@/hooks/useChitChatEvents";
 import { hasPrivateKey } from "@/utils/rsaKeyUtils";
 import { Address } from "viem";
 import { useParams } from "next/navigation";
+import { clearSymmetricKey } from "@/utils/keyStorage";
 
 interface Message {
   id: string;
@@ -131,8 +131,25 @@ export default function ChatPage() {
   useEffect(() => {
     if (id) {
       setFriendId(id);
+      shouldDeleteSymmetricKeyFirst(id);
     }
   }, [id]);
+
+  const shouldDeleteSymmetricKeyFirst = async (
+    sharedKeyWithAddress: string
+  ) => {
+    if (!contracts.chitChat || !address) return;
+
+    const keysExchanged = await contracts.chitChat?.getSharedKeyFrom(
+      sharedKeyWithAddress
+    );
+
+    if (keysExchanged.length > 0) {
+      // Delete the symmetric key from local storage
+      clearSymmetricKey(sharedKeyWithAddress);
+      console.log("Deleted symmetric key for address:", sharedKeyWithAddress);
+    }
+  };
 
   // Function to encrypt and upload message to IPFS
   const encryptAndUploadMessage = async (
@@ -175,14 +192,16 @@ export default function ChatPage() {
         from: address,
         to: recipientAddress,
         message: encryptedContent,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(
+          new Date().getTime() + 6 * 60 * 60 * 1000
+        ).toISOString(),
       };
 
       // Prepare JSON string for upload
       const jsonBlob = new Blob([JSON.stringify(messageObject)], {
         type: "application/json",
       });
-      const jsonFile = new File([jsonBlob], "message.json", {
+      const jsonFile = new File([jsonBlob], `${crypto.randomUUID()}.json`, {
         type: "application/json",
       });
 
@@ -193,7 +212,7 @@ export default function ChatPage() {
         throw new Error(`Failed to upload to IPFS: ${uploadError}`);
       }
 
-      if (!result?.cid) {
+      if (!result.cid) {
         throw new Error("Failed to get IPFS hash from upload");
       }
 
@@ -209,6 +228,15 @@ export default function ChatPage() {
         cid
       );
       await tx.wait();
+
+      console.log("Fetching encrypted message history for user and friend...");
+      const user_friend_message =
+        await contracts.chitChat?.getEncryptedMessageHistory(friendId);
+      console.log("User to Friend Message History:", user_friend_message);
+
+      const friend_to_message =
+        await contracts.chitChat?.getEncryptedMessageHistory(address);
+      console.log("Friend to User Message History:", friend_to_message);
 
       console.log("Message stored on blockchain with CID:", cid);
       return cid;
@@ -280,6 +308,7 @@ export default function ChatPage() {
       const decryptedMessages: Message[] = [];
 
       for (const metadata of messageHistory) {
+        console.log("Entered Decrypted Message function:", metadata);
         // Get the encrypted message from IPFS
         let fileData = await getFile(metadata.contentCID);
         fileData = fileData?.data;
@@ -301,13 +330,14 @@ export default function ChatPage() {
         }
 
         console.log("Fetched fileData:", fileData);
+        console.log("Content ID", metadata.contentCID);
 
         // Parse the message data
         const messageData: MessageData =
           typeof fileData === "string" ? JSON.parse(fileData) : fileData;
 
         console.log("Message to decrypt:", messageData?.message);
-
+        console.log("Symmetric key:", symmetricKey);
         // Decrypt the message content
         const decryptedContent = await decryptWithSymmetricKey(
           messageData.message,
@@ -405,8 +435,8 @@ export default function ChatPage() {
         }
 
         // Fetch message data from IPFS
-        await getFile(ipfsHash);
-
+        let fileData = await getFile(ipfsHash);
+        fileData = fileData?.data;
         if (error || !fileData) {
           throw new Error(`Failed to fetch message from IPFS: ${ipfsHash}`);
         }
@@ -420,6 +450,9 @@ export default function ChatPage() {
           messageData.message,
           symmetricKey
         );
+
+        console.log("Decrypted message content:", decryptedContent);
+        console.log("Message data:", messageData);
 
         // Determine message sender (from my perspective)
         const messageType =
