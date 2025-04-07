@@ -21,7 +21,8 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUploadToPinata } from "@/hooks/useUploadToPinata";
 import { useEthersWithRainbow } from "@/hooks/useEthersWithRainbow";
-import { ethers } from "ethers";
+import { generateRSAKeyPair, hasPrivateKey } from "@/utils/rsaKeyUtils";
+import { Address } from "viem";
 
 export default function CreateAccountPage() {
   const router = useRouter();
@@ -30,13 +31,15 @@ export default function CreateAccountPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [publicKey, setPublicKey] = useState<string | null>(null);
+  const [publicKey, setPublicKey] = useState<Uint8Array | null>(null);
+
   const [isSigningMessage, setIsSigningMessage] = useState(false);
 
   const { uploadFile, isUploading } = useUploadToPinata();
   const [avatarCID, setAvatarCID] = useState<string | null>(null);
 
-  const { isConnected, contracts, signer } = useEthersWithRainbow();
+  const { isConnected, contracts, signer, provider, address } =
+    useEthersWithRainbow();
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -49,13 +52,14 @@ export default function CreateAccountPage() {
         };
         reader.readAsDataURL(file);
 
-        // Upload to Pinata
-        // const result = await uploadFile(file);
-        // console.log("Upload result:", result);
-
         const cid =
           "bafkreibdekm75dewxerh7x2hxrlg264qif6yqc6mbzk6rgdgsbldfuetza";
+
+        // // Upload to Pinata
+        // const result = await uploadFile(file);
+        // console.log("Upload result:", result);
         // const cid = result?.cid;
+
         setAvatarCID(cid); // Handle different response formats
 
         toast({
@@ -88,20 +92,13 @@ export default function CreateAccountPage() {
     try {
       setIsSigningMessage(true);
       // Request the user to sign a message
-      const message =
-        "Sign this message to generate your public key for ChitChat";
-      const signature = await signer.signMessage(message);
+      const { publicKeyBytes } = await generateRSAKeyPair(address as Address);
 
-      // In a real implementation, you would derive the public key from the signature
-      // For demo purposes, we'll just use a placeholder
-      const derivedPublicKey =
-        "0x" +
-        Array.from(ethers.utils.arrayify(signature))
-          .slice(0, 20)
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join("");
+      setPublicKey(publicKeyBytes);
 
-      setPublicKey(derivedPublicKey);
+      console.log("Public key:", publicKeyBytes);
+
+      console.log("Is Private Key Saved:", hasPrivateKey(address as Address));
 
       toast({
         title: "Public key generated",
@@ -169,7 +166,11 @@ export default function CreateAccountPage() {
 
     try {
       // Call the smart contract function
-      const tx = await contracts.chitChat.createAccount(username, avatarCID);
+      const tx = await contracts.chitChat.createAccount(
+        username,
+        avatarCID,
+        publicKey
+      );
 
       // Wait for transaction to be mined
       await tx.wait();
