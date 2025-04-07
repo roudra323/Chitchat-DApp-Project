@@ -44,4 +44,4 @@ deploy:
 
 mock:
 	@forge script script/DeployChitChat.s.sol:DeployChitChat $(NETWORK_ARGS)
-	@forge script script/MockSimulate.t.sol:MockSimulate --rpc-url http://localhost:8545 --broadcast
+	@forge script script/MockSimulate.s.sol:MockSimulate --rpc-url http://localhost:8545 --broadcast

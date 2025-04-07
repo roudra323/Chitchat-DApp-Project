@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         // Get file from Pinata
         const file = await pinata.gateways.public.get(cid);
 
+
         if (!file) {
             return NextResponse.json(
                 { message: 'File not found' },

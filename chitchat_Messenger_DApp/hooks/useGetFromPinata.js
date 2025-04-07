@@ -22,7 +22,8 @@ export const useGetFromPinata = () => {
       }
 
       const data = await response.json();
-      setFileData(data);
+      setFileData(data.data);
+      console.log("File data:", data.data);
       return data;
     } catch (error) {
       setError(error.message);

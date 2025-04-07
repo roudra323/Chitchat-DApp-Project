@@ -25,6 +25,11 @@
                 "name": "_contentCID",
                 "type": "string",
                 "internalType": "string"
+            },
+            {
+                "name": "_publicKey",
+                "type": "bytes",
+                "internalType": "bytes"
             }
         ],
         "outputs": [],
@@ -204,7 +209,45 @@
     },
     {
         "type": "function",
+        "name": "getUserPublicKey",
+        "inputs": [
+            {
+                "name": "_user",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bytes",
+                "internalType": "bytes"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
         "name": "isFriend",
+        "inputs": [
+            {
+                "name": "_friend",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool",
+                "internalType": "bool"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "isKeyExchanged",
         "inputs": [
             {
                 "name": "_friend",
@@ -351,6 +394,25 @@
         ],
         "outputs": [],
         "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "userPublicKeys",
+        "inputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "bytes",
+                "internalType": "bytes"
+            }
+        ],
+        "stateMutability": "view"
     },
     {
         "type": "event",

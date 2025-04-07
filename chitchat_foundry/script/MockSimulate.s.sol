@@ -23,12 +23,37 @@ contract MockSimulate is Script {
         0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6
     ];
 
+    // Generate a public key from a private key using signature recovery
+    function getPublicKeyFromPrivate(
+        uint256 privateKey
+    ) internal pure returns (bytes memory) {
+        // Sign a message hash with the private key
+        bytes32 messageHash = keccak256("ChitChat Public Key Registration");
+        bytes32 ethSignedMessageHash = keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash)
+        );
+
+        // Get the signature components
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            privateKey,
+            ethSignedMessageHash
+        );
+
+        // For testing purposes, we'll just use the signature itself as a stand-in for the public key
+        // In production, you would derive the actual public key
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        return signature;
+    }
+
     function createMultipleAccounts() public {
         for (uint256 i = 0; i < 9; i++) {
             string memory friendName = string(abi.encodePacked("User", i));
+            bytes memory publicKey = getPublicKeyFromPrivate(keys[i]);
 
             vm.startBroadcast(keys[i]);
-            chitChat.createAccount(friendName, "ipfs");
+            // Update with your new function signature that includes public key
+            chitChat.createAccount(friendName, "ipfs", publicKey);
             vm.stopBroadcast();
         }
         console.log("Created accounts");

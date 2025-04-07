@@ -21,8 +21,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUploadToPinata } from "@/hooks/useUploadToPinata";
 import { useEthersWithRainbow } from "@/hooks/useEthersWithRainbow";
-import { getPublicKeyFromSignature } from "@/lib/getPublicKey";
-import { ethers } from "ethers";
+import { generateRSAKeyPair, hasPrivateKey } from "@/utils/rsaKeyUtils";
 import { Address } from "viem";
 
 export default function CreateAccountPage() {
@@ -32,7 +31,8 @@ export default function CreateAccountPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [publicKey, setPublicKey] = useState<string | null>(null);
+  const [publicKey, setPublicKey] = useState<Uint8Array | null>(null);
+
   const [isSigningMessage, setIsSigningMessage] = useState(false);
 
   const { uploadFile, isUploading } = useUploadToPinata();
@@ -52,13 +52,14 @@ export default function CreateAccountPage() {
         };
         reader.readAsDataURL(file);
 
-        // Upload to Pinata
-        // const result = await uploadFile(file);
-        // console.log("Upload result:", result);
-
         const cid =
           "bafkreibdekm75dewxerh7x2hxrlg264qif6yqc6mbzk6rgdgsbldfuetza";
+
+        // // Upload to Pinata
+        // const result = await uploadFile(file);
+        // console.log("Upload result:", result);
         // const cid = result?.cid;
+
         setAvatarCID(cid); // Handle different response formats
 
         toast({
@@ -91,15 +92,13 @@ export default function CreateAccountPage() {
     try {
       setIsSigningMessage(true);
       // Request the user to sign a message
-      const { publicKey, recoveredAddress } = await getPublicKeyFromSignature(
-        provider as ethers.providers.JsonRpcBatchProvider,
-        address as Address
-      );
+      const { publicKeyBytes } = await generateRSAKeyPair(address as Address);
 
-      setPublicKey(publicKey);
+      setPublicKey(publicKeyBytes);
 
-      console.log("Public key:", publicKey);
-      console.log("Recovered address:", recoveredAddress);
+      console.log("Public key:", publicKeyBytes);
+
+      console.log("Is Private Key Saved:", hasPrivateKey(address as Address));
 
       toast({
         title: "Public key generated",
@@ -167,7 +166,11 @@ export default function CreateAccountPage() {
 
     try {
       // Call the smart contract function
-      const tx = await contracts.chitChat.createAccount(username, avatarCID);
+      const tx = await contracts.chitChat.createAccount(
+        username,
+        avatarCID,
+        publicKey
+      );
 
       // Wait for transaction to be mined
       await tx.wait();

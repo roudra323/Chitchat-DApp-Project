@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,6 +13,12 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Key, Lock, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Contract } from "ethers";
+import { useSymmetricKey } from "@/hooks/useSymmetricKey";
+import { hexToUint8Array } from "@/utils/keyFormat";
+import { hasPrivateKey } from "@/utils/rsaKeyUtils";
+import { Address } from "viem";
+import { useEthersWithRainbow } from "@/hooks/useEthersWithRainbow";
 
 interface KeyExchangeModalProps {
   isOpen: boolean;
@@ -20,6 +26,7 @@ interface KeyExchangeModalProps {
   friendAddress: string;
   friendName: string;
   onKeyExchangeComplete: () => void;
+  chitChatContract: Contract;
 }
 
 export function KeyExchangeModal({
@@ -28,56 +35,107 @@ export function KeyExchangeModal({
   friendAddress,
   friendName,
   onKeyExchangeComplete,
+  chitChatContract,
 }: KeyExchangeModalProps) {
+  const { address } = useEthersWithRainbow();
   const { toast } = useToast();
   const [step, setStep] = useState<
     "initial" | "generating" | "sharing" | "complete"
   >("initial");
   const [error, setError] = useState<string | null>(null);
+  const [friendPublicKey, setFriendPublicKey] = useState<Uint8Array | null>(
+    null
+  );
+  const {
+    getOrCreateSymmetricKey,
+    encryptSymmetricKeyForContract,
+    isLoading: keyOperationLoading,
+  } = useSymmetricKey();
 
-  // This function would handle the actual key generation and encryption
-  // In a real implementation, this would use a library like libsodium or subtle crypto
+  // Fetch friend's public key when the modal opens
+  useEffect(() => {
+    if (isOpen && friendAddress) {
+      fetchFriendPublicKey();
+    }
+  }, [isOpen, friendAddress]);
+
+  // Fetch friend's public key from the contract
+  const fetchFriendPublicKey = async () => {
+    try {
+      console.log("Is Private Key Saved:", hasPrivateKey(address as Address));
+
+      console.log("Friends Address:", friendAddress);
+      const publicKeyBytes = await chitChatContract.getUserPublicKey(
+        friendAddress
+      );
+
+      // Convert from ethers bytes to Uint8Array
+      const publicKeyArray = hexToUint8Array(publicKeyBytes);
+
+      // Convert from bytes to Uint8Array
+      setFriendPublicKey(publicKeyArray);
+    } catch (error) {
+      console.error("Error fetching friend's public key:", error);
+      setError("Could not retrieve friend's public key");
+    }
+  };
+
+  // Handle the key exchange process
   const generateAndShareKey = async () => {
     setStep("generating");
     setError(null);
 
     try {
-      // Simulate key generation
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // 1. Ensure we have the friend's public key
+      if (!friendPublicKey) {
+        await fetchFriendPublicKey();
+        if (!friendPublicKey) {
+          throw new Error("Friend's public key not available");
+        }
+      }
 
-      // 1. Generate a symmetric key
-      // const symmetricKey = await window.crypto.subtle.generateKey(
-      //   { name: "AES-GCM", length: 256 },
-      //   true,
-      //   ["encrypt", "decrypt"]
-      // );
+      console.log("Friend's Public Key:", friendPublicKey);
 
-      // 2. Get friend's public key (would be stored on-chain or retrieved from their profile)
-      // const friendPublicKey = await getFriendPublicKey(friendAddress);
-
-      // 3. Encrypt the symmetric key with friend's public key
-      // const encryptedKey = await encryptKeyWithPublicKey(symmetricKey, friendPublicKey);
+      // 2. Generate a symmetric key for secure messaging
+      const symmetricKeyBase64 = await getOrCreateSymmetricKey(friendAddress);
+      console.log("Generated symmetric key (stored for this friend)");
+      console.log("Generated symmetric key (OWN):", symmetricKeyBase64);
 
       setStep("sharing");
 
-      // 4. Share the encrypted key via the smart contract
-      // const tx = await contracts.chitChat.shareSymmetricKey(friendAddress, encryptedKey);
-      // await tx.wait();
+      // 3. Encrypt the symmetric key with friend's public key
+      const encryptedKeyHex = await encryptSymmetricKeyForContract(
+        symmetricKeyBase64,
+        friendPublicKey
+      );
+      console.log("Encrypted key ready for blockchain storage");
 
-      // Simulate contract interaction
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      try {
+        // 4. Share the encrypted key via the smart contract
+        const tx = await chitChatContract.shareSymmetricKey(
+          friendAddress,
+          encryptedKeyHex
+        );
+        // Wait for transaction confirmation
+        await tx.wait();
 
-      setStep("complete");
-      toast({
-        title: "Key exchange successful",
-        description: `You can now securely chat with ${friendName}`,
-      });
+        console.log("Key shared successfully:", tx.hash);
 
-      // Wait a moment before closing the modal
-      setTimeout(() => {
-        onKeyExchangeComplete();
-        onClose();
-      }, 1500);
+        setStep("complete");
+        toast({
+          title: "Key exchange successful",
+          description: `You can now securely chat with ${friendName}`,
+        });
+
+        // Wait a moment before closing the modal
+        setTimeout(() => {
+          onKeyExchangeComplete();
+          onClose();
+        }, 1500);
+      } catch (contractError) {
+        console.error("Contract interaction error:", contractError);
+        throw new Error("Failed to store encrypted key on blockchain");
+      }
     } catch (error: any) {
       console.error("Key exchange error:", error);
       setError(error.message || "Failed to exchange encryption keys");
@@ -127,7 +185,8 @@ export function KeyExchangeModal({
                     1. A unique encryption key will be generated for your
                     conversation
                     <br />
-                    2. This key will be securely shared with {friendName}
+                    2. This key will be securely shared with {friendName} using
+                    their public key
                     <br />
                     3. All messages will be encrypted before being stored on
                     IPFS
@@ -144,7 +203,7 @@ export function KeyExchangeModal({
                 Generating encryption keys...
               </p>
               <p className="text-center text-sm text-muted-foreground mt-1">
-                This will only take a moment
+                Creating a unique key for your conversation
               </p>
             </div>
           )}

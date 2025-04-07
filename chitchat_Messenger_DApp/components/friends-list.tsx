@@ -101,8 +101,10 @@ export function FriendsList({ searchQuery = "" }: FriendsListProps) {
     }
   };
 
-  const startChat = (friendAddress: string) => {
-    router.push(`/chat/${friendAddress}`);
+  const startChat = (friendAddress: string, friendName: string) => {
+    router.push(
+      `/chat/${friendAddress}?name=${encodeURIComponent(friendName)}`
+    );
   };
 
   if (loading) {
@@ -147,7 +149,7 @@ export function FriendsList({ searchQuery = "" }: FriendsListProps) {
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => startChat(friend.address)}
+                onClick={() => startChat(friend.address, friend.name)}
               >
                 <MessageSquare className="h-5 w-5" />
               </Button>

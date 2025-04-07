@@ -41,6 +41,7 @@ contract ChitChat {
 
     mapping(address => UserProfile) private users;
     mapping(address => mapping(address => bytes)) public sharedSymmetricKeys;
+    mapping(address => bytes) public userPublicKeys;
     address[] private registeredUsers;
 
     // === Events ===
@@ -98,7 +99,8 @@ contract ChitChat {
     /// @param _name The display name of the user
     function createAccount(
         string calldata _name,
-        string memory _contentCID
+        string memory _contentCID,
+        bytes calldata _publicKey
     ) external {
         require(bytes(_name).length > 0, "Name cannot be empty");
         require(
@@ -119,6 +121,7 @@ contract ChitChat {
             isEncrypted: false
         });
 
+        userPublicKeys[msg.sender] = _publicKey;
         emit UserRegistered(msg.sender, _name, _contentCID, block.timestamp);
     }
 
@@ -306,10 +309,7 @@ contract ChitChat {
         string memory _encryptedMessageHash
     ) external userExists(msg.sender) userExists(_recipient) {
         require(users[msg.sender].friends[_recipient], "Not friends");
-        require(
-            sharedSymmetricKeys[msg.sender][_recipient].length > 0,
-            "Symmetric key not shared"
-        );
+        require(isKeyExchanged(_recipient), "Symmetric key not shared");
 
         IPFSMetadata memory metadata = IPFSMetadata({
             contentCID: _encryptedMessageHash,
@@ -371,5 +371,35 @@ contract ChitChat {
         returns (bytes memory)
     {
         return sharedSymmetricKeys[_friend][msg.sender];
+    }
+
+    /**
+     * @notice Checks if a symmetric key has been exchanged between the caller and a specified friend.
+     * @dev This function verifies if either the caller or the specified friend has shared a symmetric key
+     *      with the other. It ensures that both the caller and the friend exist as users in the system.
+     * @param _friend The address of the friend to check for key exchange.
+     * @return bool Returns true if a symmetric key has been exchanged between the caller and the friend,
+     *              otherwise returns false.
+     */
+    function isKeyExchanged(
+        address _friend
+    ) public view userExists(msg.sender) userExists(_friend) returns (bool) {
+        // Check if either user has shared a key with the other
+        return
+            sharedSymmetricKeys[msg.sender][_friend].length > 0 ||
+            sharedSymmetricKeys[_friend][msg.sender].length > 0;
+    }
+
+    /**
+     * @notice Retrieves the public key of a specified user.
+     * @dev This function allows external contracts or users to access the stored public key
+     *      associated with a given user's address.
+     * @param _user The address of the user whose public key is being requested.
+     * @return The public key of the specified user as a bytes array.
+     */
+    function getUserPublicKey(
+        address _user
+    ) external view returns (bytes memory) {
+        return userPublicKeys[_user];
     }
 }
