@@ -32,14 +32,12 @@ export default function CreateAccountPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [publicKey, setPublicKey] = useState<Uint8Array | null>(null);
-
-  const [isSigningMessage, setIsSigningMessage] = useState(false);
+  const [isGeneratingKeys, setIsGeneratingKeys] = useState(false);
 
   const { uploadFile, isUploading } = useUploadToPinata();
   const [avatarCID, setAvatarCID] = useState<string | null>(null);
 
-  const { isConnected, contracts, signer, provider, address } =
-    useEthersWithRainbow();
+  const { isConnected, contracts, signer, address } = useEthersWithRainbow();
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -79,53 +77,7 @@ export default function CreateAccountPage() {
     }
   };
 
-  const handleSignMessage = async () => {
-    if (!isConnected || !signer) {
-      toast({
-        title: "Wallet not connected",
-        description: "Please connect your wallet to continue",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setIsSigningMessage(true);
-      // Request the user to sign a message
-      const { publicKeyBytes } = await generateRSAKeyPair(address as Address);
-
-      setPublicKey(publicKeyBytes);
-
-      console.log("Public key:", publicKeyBytes);
-
-      console.log("Is Private Key Saved:", hasPrivateKey(address as Address));
-
-      toast({
-        title: "Public key generated",
-        description: "Your public key has been successfully generated",
-      });
-    } catch (error: any) {
-      console.error("Signing error:", error);
-      toast({
-        title: "Signing failed",
-        description: error.message || "Failed to sign message",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSigningMessage(false);
-    }
-  };
-
   const handleCreateAccount = async () => {
-    if (!publicKey) {
-      toast({
-        title: "Public key required",
-        description: "Please sign the message to generate your public key",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!username) {
       toast({
         title: "Username required",
@@ -153,7 +105,7 @@ export default function CreateAccountPage() {
       return;
     }
 
-    if (!isConnected || !contracts?.chitChat) {
+    if (!isConnected || !contracts?.chitChat || !address) {
       toast({
         title: "Wallet not connected",
         description: "Please connect your wallet to continue",
@@ -165,11 +117,26 @@ export default function CreateAccountPage() {
     setIsCreating(true);
 
     try {
+      // Generate RSA key pair
+      const { publicKeyBytes } = await generateRSAKeyPair(address as Address);
+      setPublicKey(publicKeyBytes);
+
+      console.log("Public key generated:", publicKeyBytes);
+      console.log("Is Private Key Saved:", hasPrivateKey(address as Address));
+
+      if (!publicKeyBytes) {
+        toast({
+          title: "Error generating keys",
+          description: "Failed to generate RSA keys",
+          variant: "destructive",
+        });
+        return;
+      }
       // Call the smart contract function
       const tx = await contracts.chitChat.createAccount(
         username,
         avatarCID,
-        publicKey
+        publicKeyBytes
       );
 
       // Wait for transaction to be mined
@@ -252,35 +219,12 @@ export default function CreateAccountPage() {
           <div className="bg-muted p-4 rounded-md flex items-start gap-3">
             <Key className="h-5 w-5 text-primary mt-0.5" />
             <div className="w-full">
-              <p className="text-sm font-medium">Public Key Required</p>
+              <p className="text-sm font-medium">Encryption Keys</p>
               <p className="text-xs text-muted-foreground mb-2">
-                You need to sign a message with your wallet to generate your
-                public key. This key is required for end-to-end encrypted
-                messaging.
+                RSA encryption keys will be automatically generated when you
+                create your account. The private key will be stored securely on
+                your device and cannot be regenerated.
               </p>
-
-              {publicKey ? (
-                <div className="bg-background p-2 rounded border text-xs font-mono truncate">
-                  {publicKey}
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-1"
-                  onClick={handleSignMessage}
-                  disabled={isSigningMessage}
-                >
-                  {isSigningMessage ? (
-                    <>
-                      <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                      Signing...
-                    </>
-                  ) : (
-                    <>Sign Message</>
-                  )}
-                </Button>
-              )}
             </div>
           </div>
 
@@ -322,7 +266,7 @@ export default function CreateAccountPage() {
           </Button>
           <Button
             onClick={handleCreateAccount}
-            disabled={isCreating || isUploading || isSigningMessage}
+            disabled={isCreating || isUploading}
           >
             {isCreating ? (
               <>
