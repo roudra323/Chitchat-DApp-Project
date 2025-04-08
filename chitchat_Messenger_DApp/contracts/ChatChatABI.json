@@ -433,7 +433,7 @@
             {
                 "name": "ipfsHash",
                 "type": "string",
-                "indexed": true,
+                "indexed": false,
                 "internalType": "string"
             }
         ],

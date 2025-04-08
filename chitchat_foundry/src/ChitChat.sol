@@ -66,7 +66,7 @@ contract ChitChat {
     event EncryptedMessageStored(
         address indexed sender,
         address indexed receiver,
-        string indexed ipfsHash
+        string ipfsHash
     );
     event SymmetricKeyShared(
         address indexed sender,
