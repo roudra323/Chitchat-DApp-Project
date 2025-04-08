@@ -42,6 +42,7 @@ import { hasPrivateKey } from "@/utils/rsaKeyUtils";
 import { Address } from "viem";
 import { useParams } from "next/navigation";
 import { clearSymmetricKey } from "@/utils/keyStorage";
+import { set } from "react-hook-form";
 
 interface Message {
   id: string;
@@ -85,7 +86,8 @@ export default function ChatPage() {
   const [hasExchangedKeys, setHasExchangedKeys] = useState(false);
   const [isCheckingKeys, setIsCheckingKeys] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-
+  const [keyCopied, setKeyCopied] = useState(false);
+  const [getSymmetricKey, setSymmetricKey] = useState<string | null>(null);
   // Create a state for the friend ID
   const [friendId, setFriendId] = useState<string>("");
 
@@ -699,6 +701,48 @@ export default function ChatPage() {
     fetchAndDecryptMessages();
   };
 
+  // Copy symmetric key to clipboard and proceed
+  const copyKeyToClipboard = async () => {
+    console.log("inside copy function");
+
+    // Get the latest key directly from storage before trying to copy
+    const storedKey = getStoredSymmetricKey(friendId);
+
+    // Update the state with the latest value
+    if (storedKey) {
+      setSymmetricKey(storedKey);
+    }
+
+    // Now use the latest value (either from state or storage)
+    const keyToCopy = getSymmetricKey || storedKey;
+
+    console.log("Symmetric Key:", keyToCopy);
+
+    if (keyToCopy) {
+      try {
+        await navigator.clipboard.writeText(keyToCopy);
+        setKeyCopied(true);
+        toast({
+          title: "Key copied to clipboard",
+          description: "Store this key securely for backup purposes",
+        });
+      } catch (err) {
+        console.error("Failed to copy key:", err);
+        toast({
+          variant: "destructive",
+          title: "Failed to copy key",
+          description: "Please try again",
+        });
+      }
+    } else {
+      toast({
+        variant: "destructive",
+        title: "No key available",
+        description: "Could not find the encryption key",
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Header */}
@@ -719,12 +763,12 @@ export default function ChatPage() {
 
           <div>
             <h2 className="font-semibold">{friendName}</h2>
-            <div className="flex items-center gap-1">
+            {/* <div className="flex items-center gap-1">
               <OnlineStatusIndicator userId={friendId} />
               <span className="text-xs text-muted-foreground">
                 {useSocket().onlineFriends.has(friendId) ? "Online" : "Offline"}
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -733,9 +777,9 @@ export default function ChatPage() {
 
           <div className="relative">
             <Bell className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground transition-colors" />
-            <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center">
+            {/* <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center">
               3
-            </Badge>
+            </Badge> */}
           </div>
 
           <TooltipProvider>
@@ -748,7 +792,9 @@ export default function ChatPage() {
                     hasExchangedKeys ? "text-green-500" : "text-yellow-500"
                   }
                   onClick={() =>
-                    !hasExchangedKeys && setIsKeyExchangeModalOpen(true)
+                    hasExchangedKeys
+                      ? copyKeyToClipboard()
+                      : setIsKeyExchangeModalOpen(true)
                   }
                 >
                   {hasExchangedKeys ? (

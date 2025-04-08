@@ -371,6 +371,12 @@ export function ChatList({ searchQuery = "" }: ChatListProps) {
       chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const startChat = (friendAddress: string, friendName: string) => {
+    router.push(
+      `/chat/${friendAddress}?name=${encodeURIComponent(friendName)}`
+    );
+  };
+
   // Handle clicking on a chat
   const handleChatClick = (chatId: string) => {
     // Reset unread count for this chat
@@ -404,7 +410,7 @@ export function ChatList({ searchQuery = "" }: ChatListProps) {
               "cursor-pointer hover:bg-muted/50 transition-colors",
               chat.unread > 0 ? "bg-primary/5" : ""
             )}
-            onClick={() => handleChatClick(chat.id)}
+            onClick={() => startChat(chat.userId, chat.name)}
           >
             <CardContent className="p-4 flex items-center gap-3">
               <div className="relative">
