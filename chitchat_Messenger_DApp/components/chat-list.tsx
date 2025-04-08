@@ -37,6 +37,12 @@ interface LastMessage {
   status: MessageStatus;
 }
 
+interface Relationship {
+  sender: string;
+  receiver: string;
+  timestamp: string;
+}
+
 export function ChatList({ searchQuery = "" }: ChatListProps) {
   const router = useRouter();
   const { socket } = useSocket();
@@ -183,9 +189,21 @@ export function ChatList({ searchQuery = "" }: ChatListProps) {
       if (!address || !contracts?.chitChat || acceptedFriends.length === 0)
         return;
 
+      // Filter relationships to only include those where the current user is involved
+      const userRelationships = acceptedFriends.filter(
+        (relationship: Relationship) =>
+          relationship.sender.toLowerCase() === address.toLowerCase() ||
+          relationship.receiver.toLowerCase() === address.toLowerCase()
+      );
+
+      if (userRelationships.length === 0) {
+        setChats([]);
+        return;
+      }
+
       const chatData: ChatItem[] = [];
 
-      for (const friend of acceptedFriends) {
+      for (const friend of userRelationships) {
         // Determine which address is the friend
         const friendAddress =
           friend.sender.toLowerCase() === address.toLowerCase()
