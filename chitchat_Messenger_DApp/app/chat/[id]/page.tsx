@@ -42,6 +42,7 @@ import { hasPrivateKey } from "@/utils/rsaKeyUtils";
 import { Address } from "viem";
 import { useParams } from "next/navigation";
 import { clearSymmetricKey } from "@/utils/keyStorage";
+import { set } from "react-hook-form";
 
 interface Message {
   id: string;
@@ -85,7 +86,9 @@ export default function ChatPage() {
   const [hasExchangedKeys, setHasExchangedKeys] = useState(false);
   const [isCheckingKeys, setIsCheckingKeys] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-
+  const [keyCopied, setKeyCopied] = useState(false);
+  const [getSymmetricKey, setSymmetricKey] = useState<string | null>(null);
+  const processedMessagesRef = useRef<Set<string>>(new Set());
   // Create a state for the friend ID
   const [friendId, setFriendId] = useState<string>("");
 
@@ -134,6 +137,23 @@ export default function ChatPage() {
       shouldDeleteSymmetricKeyFirst(id);
     }
   }, [id]);
+
+  // Process blockchain events for new messages
+  useEffect(() => {
+    if (messageEvents && messageEvents.length > 0) {
+      // Process each message event
+      messageEvents.forEach((event) => {
+        const eventId = `${event.sender}-${event.receiver}-${event.ipfsHash}`;
+
+        // Only process each event once
+        if (!processedMessagesRef.current.has(eventId)) {
+          processedMessagesRef.current.add(eventId);
+          processNewMessageEvent(event.sender, event.receiver, event.ipfsHash);
+          console.log("This is actual event data:", event);
+        }
+      });
+    }
+  }, [messageEvents, address, friendId]);
 
   const shouldDeleteSymmetricKeyFirst = async (
     sharedKeyWithAddress: string
@@ -192,9 +212,7 @@ export default function ChatPage() {
         from: address,
         to: recipientAddress,
         message: encryptedContent,
-        timestamp: new Date(
-          new Date().getTime() + 6 * 60 * 60 * 1000
-        ).toISOString(),
+        timestamp: new Date().toISOString(),
       };
 
       // Prepare JSON string for upload
@@ -359,7 +377,7 @@ export default function ChatPage() {
 
         // Create a message object
         decryptedMessages.push({
-          id: metadata.contentCID, // Use the CID as the message ID
+          id: `${metadata.contentCID}-${messageDate.getTime()}`, // Use timestamp to make ID unique
           content: decryptedContent,
           sender,
           timestamp: formattedTime,
@@ -411,6 +429,16 @@ export default function ChatPage() {
         sender.toLowerCase() === friendId.toLowerCase())
     ) {
       try {
+        // Check if message already exists in our state
+        const messageExists = messages.some(
+          (msg) => msg.id === ipfsHash || msg.cid === ipfsHash
+        );
+
+        if (messageExists) {
+          console.log("Message already exists, skipping:", ipfsHash);
+          return;
+        }
+
         // Get the symmetric key
         let symmetricKey = getStoredSymmetricKey(
           sender.toLowerCase() === address?.toLowerCase() ? receiver : sender
@@ -422,7 +450,6 @@ export default function ChatPage() {
           );
 
           if (encryptedKey && encryptedKey.length > 0 && address) {
-            console.log("From process  messages");
             symmetricKey = await decryptSymmetricKeyWithPrivateKey(
               encryptedKey,
               address
@@ -451,9 +478,6 @@ export default function ChatPage() {
           symmetricKey
         );
 
-        console.log("Decrypted message content:", decryptedContent);
-        console.log("Message data:", messageData);
-
         // Determine message sender (from my perspective)
         const messageType =
           messageData.from.toLowerCase() === address?.toLowerCase()
@@ -467,9 +491,9 @@ export default function ChatPage() {
           minute: "2-digit",
         });
 
-        // Create and add the new message
+        // Create the new message with a unique ID
         const newMessage: Message = {
-          id: ipfsHash,
+          id: `${ipfsHash}-${Date.now()}`, // Make the ID unique by adding timestamp
           content: decryptedContent,
           sender: messageType,
           timestamp: formattedTime,
@@ -477,6 +501,7 @@ export default function ChatPage() {
           cid: ipfsHash,
         };
 
+        // Add the message to the state
         setMessages((prev) => [...prev, newMessage]);
 
         // If the message is from the other person, mark it as read
@@ -484,7 +509,7 @@ export default function ChatPage() {
           setTimeout(() => {
             setMessages((prev) =>
               prev.map((msg) =>
-                msg.id === ipfsHash ? { ...msg, status: "read" } : msg
+                msg.id === newMessage.id ? { ...msg, status: "read" } : msg
               )
             );
           }, 1000);
@@ -545,16 +570,6 @@ export default function ChatPage() {
     checkKeyExchange();
   }, [friendId, toast, contracts.chitChat, address]);
 
-  // Process blockchain events for new messages
-  useEffect(() => {
-    if (messageEvents && messageEvents.length > 0) {
-      // Process each message event
-      messageEvents.forEach((event) => {
-        processNewMessageEvent(event.sender, event.receiver, event.ipfsHash);
-      });
-    }
-  }, [messageEvents]);
-
   useEffect(() => {
     if (socket && isConnected) {
       // Join the chat room
@@ -595,35 +610,32 @@ export default function ChatPage() {
       const messageToSend = message.trim();
       setMessage(""); // Clear input field immediately for better UX
 
-      // Create a temporary message object to show in the UI
-      const tempId = Date.now().toString();
-      const newMessage: Message = {
-        id: tempId,
-        content: messageToSend,
-        sender: "me",
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        status: "sent",
-      };
-
-      // Add the temporary message to the UI
-      setMessages((prev) => [...prev, newMessage]);
+      // Show loading indicator or toast notification that message is processing
+      toast({
+        title: "Sending message",
+        description: "Your message is being processed on the blockchain...",
+      });
 
       try {
         // Encrypt and upload to IPFS + store on blockchain
         const cid = await encryptAndUploadMessage(messageToSend, friendId);
 
         if (cid) {
-          // Update the message with the real CID
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === tempId
-                ? { ...msg, id: cid, cid, status: "delivered" }
-                : msg
-            )
-          );
+          // Only add the message to UI after blockchain confirmation
+          const newMessage: Message = {
+            id: `${cid}-${Date.now()}`, // Make the ID unique by adding timestamp
+            content: messageToSend,
+            sender: "me",
+            timestamp: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            status: "delivered",
+            cid: cid,
+          };
+
+          // Add the confirmed message to the UI
+          setMessages((prev) => [...prev, newMessage]);
 
           // Simulate message being read after a delay
           setTimeout(() => {
@@ -633,14 +645,12 @@ export default function ChatPage() {
               )
             );
           }, 3000);
-        } else {
-          // If failed, mark the message with an error state
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === tempId ? { ...msg, status: "sent" } : msg
-            )
-          );
 
+          toast({
+            title: "Message sent",
+            description: "Your message has been successfully delivered",
+          });
+        } else {
           toast({
             title: "Message not delivered",
             description:
@@ -650,13 +660,6 @@ export default function ChatPage() {
         }
       } catch (error) {
         console.error("Error sending message:", error);
-        // Update UI to show the message failed
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === tempId ? { ...msg, status: "sent" } : msg
-          )
-        );
-
         toast({
           title: "Message Failed",
           description: `Failed to send message: ${
@@ -699,6 +702,48 @@ export default function ChatPage() {
     fetchAndDecryptMessages();
   };
 
+  // Copy symmetric key to clipboard and proceed
+  const copyKeyToClipboard = async () => {
+    console.log("inside copy function");
+
+    // Get the latest key directly from storage before trying to copy
+    const storedKey = getStoredSymmetricKey(friendId);
+
+    // Update the state with the latest value
+    if (storedKey) {
+      setSymmetricKey(storedKey);
+    }
+
+    // Now use the latest value (either from state or storage)
+    const keyToCopy = getSymmetricKey || storedKey;
+
+    console.log("Symmetric Key:", keyToCopy);
+
+    if (keyToCopy) {
+      try {
+        await navigator.clipboard.writeText(keyToCopy);
+        setKeyCopied(true);
+        toast({
+          title: "Key copied to clipboard",
+          description: "Store this key securely for backup purposes",
+        });
+      } catch (err) {
+        console.error("Failed to copy key:", err);
+        toast({
+          variant: "destructive",
+          title: "Failed to copy key",
+          description: "Please try again",
+        });
+      }
+    } else {
+      toast({
+        variant: "destructive",
+        title: "No key available",
+        description: "Could not find the encryption key",
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Header */}
@@ -719,12 +764,12 @@ export default function ChatPage() {
 
           <div>
             <h2 className="font-semibold">{friendName}</h2>
-            <div className="flex items-center gap-1">
+            {/* <div className="flex items-center gap-1">
               <OnlineStatusIndicator userId={friendId} />
               <span className="text-xs text-muted-foreground">
                 {useSocket().onlineFriends.has(friendId) ? "Online" : "Offline"}
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -733,9 +778,9 @@ export default function ChatPage() {
 
           <div className="relative">
             <Bell className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground transition-colors" />
-            <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center">
+            {/* <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center">
               3
-            </Badge>
+            </Badge> */}
           </div>
 
           <TooltipProvider>
@@ -748,7 +793,9 @@ export default function ChatPage() {
                     hasExchangedKeys ? "text-green-500" : "text-yellow-500"
                   }
                   onClick={() =>
-                    !hasExchangedKeys && setIsKeyExchangeModalOpen(true)
+                    hasExchangedKeys
+                      ? copyKeyToClipboard()
+                      : setIsKeyExchangeModalOpen(true)
                   }
                 >
                   {hasExchangedKeys ? (

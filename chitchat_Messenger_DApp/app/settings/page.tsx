@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,13 +13,11 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import {
   ArrowLeft,
-  Upload,
   Moon,
   Sun,
   Bell,
@@ -29,10 +27,11 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 import { ConnectWalletButton } from "@/components/ui/connect-button";
 import Image from "next/image";
 import { SecurityTab } from "./security-tab";
+import { useEthersWithRainbow } from "@/hooks/useEthersWithRainbow";
+import { loadRSAPrivateKeyBytes } from "@/utils/keyStorage";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -41,24 +40,28 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState(true);
   const [readReceipts, setReadReceipts] = useState(true);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userIpfsHash, setUserIpfsHash] = useState<string | null>(null);
+  const [userPublicKey, setUserPublicKey] = useState<string | null>(null);
+  const [userPrivateKey, setUserPrivateKey] = useState<Uint8Array | null>(null);
+  const { address, isConnected, contracts } = useEthersWithRainbow();
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setAvatarPreview(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      if (isConnected && contracts?.chitChat) {
+        const [name, ipfsHash] = await contracts.chitChat.getUserInfo(address);
+        const publicKey = await contracts.chitChat.getUserPublicKey(address);
+        const prvateKey = loadRSAPrivateKeyBytes(address as `0x${string}`);
+        setUserPrivateKey(prvateKey);
+        console.log("User Info:", { name, ipfsHash }, publicKey);
+        setUserPublicKey(publicKey);
+        setUserName(name);
+        setUserIpfsHash(ipfsHash);
+      }
+    };
 
-  const handleSaveProfile = () => {
-    toast({
-      title: "Profile updated",
-      description: "Your profile has been updated successfully",
-    });
-  };
+    fetchUserInfo();
+  }, [address, isConnected, contracts?.chitChat]);
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
@@ -87,9 +90,9 @@ export default function SettingsPage() {
 
           <div className="relative">
             <Bell className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground transition-colors" />
-            <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center">
-              3
-            </Badge>
+            {/* <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center">
+              0
+            </Badge> */}
           </div>
 
           <Button
@@ -106,9 +109,12 @@ export default function SettingsPage() {
 
           <Avatar className="h-8 w-8 cursor-pointer">
             <AvatarImage
-              src={avatarPreview || "/placeholder.svg?height=32&width=32"}
+              src={
+                `https://bronze-quickest-snake-412.mypinata.cloud/ipfs/${userIpfsHash}` ||
+                "/placeholder.svg?height=32&width=32"
+              }
             />
-            <AvatarFallback>JD</AvatarFallback>
+            <AvatarFallback>{userName}</AvatarFallback>
           </Avatar>
         </div>
       </header>
@@ -128,7 +134,7 @@ export default function SettingsPage() {
                 <CardHeader>
                   <CardTitle>Profile Information</CardTitle>
                   <CardDescription>
-                    Update your profile information and username
+                    Your ChitChat profile information
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -136,56 +142,35 @@ export default function SettingsPage() {
                     <Avatar className="w-24 h-24">
                       <AvatarImage
                         src={
-                          avatarPreview || "/placeholder.svg?height=96&width=96"
+                          `https://bronze-quickest-snake-412.mypinata.cloud/ipfs/${userIpfsHash}` ||
+                          "/placeholder.svg?height=96&width=96"
                         }
                       />
-                      <AvatarFallback className="text-2xl">JD</AvatarFallback>
+                      <AvatarFallback className="text-2xl">
+                        {userName ? userName[0]?.toUpperCase() : "?"}
+                      </AvatarFallback>
                     </Avatar>
-                    <div className="flex items-center gap-2">
-                      <Label
-                        htmlFor="avatar"
-                        className="cursor-pointer text-sm text-primary flex items-center gap-1"
-                      >
-                        <Upload className="h-4 w-4" />
-                        Change Profile Picture
-                      </Label>
-                      <Input
-                        id="avatar"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleAvatarUpload}
-                      />
+                    <h3 className="text-lg font-medium">
+                      {userName || "Anonymous User"}
+                    </h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Username</Label>
+                      <div className="p-2 bg-muted rounded-md">
+                        {userName || "Not set"}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Wallet Address</Label>
+                      <div className="p-2 bg-muted rounded-md font-mono text-sm break-all">
+                        {address || "Not connected"}
+                      </div>
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input id="username" defaultValue="jane_doe" />
-                    <p className="text-xs text-muted-foreground">
-                      This is your public username that others will see
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="display-name">Display Name</Label>
-                    <Input id="display-name" defaultValue="Jane Doe" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="bio">Bio</Label>
-                    <Input
-                      id="bio"
-                      defaultValue="Crypto enthusiast and privacy advocate"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      A short bio about yourself
-                    </p>
-                  </div>
                 </CardContent>
-                <CardFooter className="flex justify-end">
-                  <Button onClick={handleSaveProfile}>Save Changes</Button>
-                </CardFooter>
               </Card>
 
               <Card>
@@ -209,20 +194,21 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-medium">MetaMask</p>
                         <p className="text-xs text-muted-foreground">
-                          0x1a2...3b4c
+                          {address ? address : "0x123...4567"}
                         </p>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm">
-                      Disconnect
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="security" className="space-y-6">
-              <SecurityTab />
+              <SecurityTab
+                publicKey={userPublicKey}
+                privateKey={userPrivateKey}
+                account={address as `0x${string}`}
+              />
             </TabsContent>
 
             <TabsContent value="notifications" className="space-y-6">

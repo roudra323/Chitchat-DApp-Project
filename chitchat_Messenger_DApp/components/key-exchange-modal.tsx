@@ -11,7 +11,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Key, Lock, AlertTriangle } from "lucide-react";
+import {
+  Loader2,
+  Key,
+  Lock,
+  AlertTriangle,
+  Copy,
+  CheckCircle2,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Contract } from "ethers";
 import { useSymmetricKey } from "@/hooks/useSymmetricKey";
@@ -40,12 +47,14 @@ export function KeyExchangeModal({
   const { address } = useEthersWithRainbow();
   const { toast } = useToast();
   const [step, setStep] = useState<
-    "initial" | "generating" | "sharing" | "complete"
+    "initial" | "generating" | "sharing" | "complete" | "export"
   >("initial");
   const [error, setError] = useState<string | null>(null);
   const [friendPublicKey, setFriendPublicKey] = useState<Uint8Array | null>(
     null
   );
+  const [keyCopied, setKeyCopied] = useState(false);
+  const [symmetricKey, setSymmetricKey] = useState<string | null>(null);
   const {
     getOrCreateSymmetricKey,
     encryptSymmetricKeyForContract,
@@ -58,6 +67,15 @@ export function KeyExchangeModal({
       fetchFriendPublicKey();
     }
   }, [isOpen, friendAddress]);
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setStep("initial");
+      setError(null);
+      setKeyCopied(false);
+    }
+  }, [isOpen]);
 
   // Fetch friend's public key from the contract
   const fetchFriendPublicKey = async () => {
@@ -101,6 +119,9 @@ export function KeyExchangeModal({
       console.log("Generated symmetric key (stored for this friend)");
       console.log("Generated symmetric key (OWN):", symmetricKeyBase64);
 
+      // Store the symmetric key for export option
+      setSymmetricKey(symmetricKeyBase64);
+
       setStep("sharing");
 
       // 3. Encrypt the symmetric key with friend's public key
@@ -121,17 +142,11 @@ export function KeyExchangeModal({
 
         console.log("Key shared successfully:", tx.hash);
 
-        setStep("complete");
+        setStep("export");
         toast({
           title: "Key exchange successful",
           description: `You can now securely chat with ${friendName}`,
         });
-
-        // Wait a moment before closing the modal
-        setTimeout(() => {
-          onKeyExchangeComplete();
-          onClose();
-        }, 1500);
       } catch (contractError) {
         console.error("Contract interaction error:", contractError);
         throw new Error("Failed to store encrypted key on blockchain");
@@ -141,6 +156,38 @@ export function KeyExchangeModal({
       setError(error.message || "Failed to exchange encryption keys");
       setStep("initial");
     }
+  };
+
+  // Copy symmetric key to clipboard and proceed
+  const copyKeyToClipboard = async () => {
+    if (symmetricKey) {
+      try {
+        await navigator.clipboard.writeText(symmetricKey);
+        setKeyCopied(true);
+        toast({
+          title: "Key copied to clipboard",
+          description: "Store this key securely for backup purposes",
+        });
+
+        // Proceed to complete after copying
+        setTimeout(() => {
+          completeProcess();
+        }, 1000); // Brief delay to show the "Copied!" state
+      } catch (err) {
+        console.error("Failed to copy key:", err);
+        toast({
+          variant: "destructive",
+          title: "Failed to copy key",
+          description: "Please try again",
+        });
+      }
+    }
+  };
+
+  // Complete the process and close modal
+  const completeProcess = () => {
+    onKeyExchangeComplete();
+    onClose();
   };
 
   return (
@@ -220,15 +267,49 @@ export function KeyExchangeModal({
             </div>
           )}
 
-          {step === "complete" && (
-            <div className="flex flex-col items-center justify-center py-6">
-              <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-4">
-                <Key className="h-6 w-6 text-green-600 dark:text-green-300" />
+          {step === "export" && (
+            <div className="space-y-4">
+              <div className="flex flex-col items-center justify-center py-2">
+                <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-4">
+                  <Key className="h-6 w-6 text-green-600 dark:text-green-300" />
+                </div>
+                <p className="text-center font-medium">
+                  Key exchange complete!
+                </p>
+                <p className="text-center text-sm text-muted-foreground mt-1">
+                  You can now securely chat with {friendName}
+                </p>
               </div>
-              <p className="text-center font-medium">Key exchange complete!</p>
-              <p className="text-center text-sm text-muted-foreground mt-1">
-                You can now securely chat with {friendName}
-              </p>
+
+              <Alert
+                variant="destructive"
+                className="border-amber-500 bg-amber-50 dark:bg-amber-950 dark:border-amber-700"
+              >
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <AlertTitle className="text-amber-600 dark:text-amber-400">
+                  Important Security Warning
+                </AlertTitle>
+                <AlertDescription className="text-sm">
+                  If you lose this symmetric key, you will{" "}
+                  <strong>permanently lose access</strong> to all messages in
+                  this conversation. They cannot be decrypted without this key,
+                  and you will need to establish a new end-to-end encrypted
+                  connection.
+                </AlertDescription>
+              </Alert>
+
+              <div className="bg-muted p-4 rounded-md flex items-start gap-3">
+                <Copy className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Export Your Key</p>
+                  <p className="text-xs text-muted-foreground">
+                    It's recommended to export and safely store your symmetric
+                    key as a backup. This key is stored in your browser, but if
+                    you clear browser data or switch devices, you'll need this
+                    key to access your messages.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -253,7 +334,30 @@ export function KeyExchangeModal({
             </Button>
           )}
 
-          {step === "complete" && <Button onClick={onClose}>Close</Button>}
+          {step === "export" && (
+            <>
+              <Button variant="outline" onClick={completeProcess}>
+                Skip
+              </Button>
+              <Button
+                variant="default"
+                onClick={copyKeyToClipboard}
+                className="gap-2"
+              >
+                {keyCopied ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                    Export Key
+                  </>
+                )}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
