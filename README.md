@@ -6,7 +6,7 @@
 
 **ChitChat** is a decentralized, end-to-end encrypted messaging platform that prioritizes privacy without sacrificing usability. Built on blockchain technology and IPFS, ChitChat ensures your conversations remain private, secure, and free from central control.
 
-![ChitChat Preview](https://via.placeholder.com/800x400?text=ChitChat+Preview)
+![ChitChat Preview](https://chitchat323.vercel.app/)
 
 ## ✨ Key Features
 
