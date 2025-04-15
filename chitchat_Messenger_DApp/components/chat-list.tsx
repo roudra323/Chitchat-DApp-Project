@@ -439,17 +439,17 @@ export function ChatList({ searchQuery = "" }: ChatListProps) {
                   <AvatarFallback>{chat.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="absolute bottom-0 right-0 border-2 border-background">
-                  <OnlineStatusIndicator userId={chat.userId} />
+                  {/* <OnlineStatusIndicator userId={chat.userId} /> */}
                 </div>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium">{chat.name}</h3>
-                    <OnlineStatusIndicator
+                    {/* <OnlineStatusIndicator
                       userId={chat.userId}
                       className="h-1.5 w-1.5"
-                    />
+                    /> */}
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {chat.timestamp}

@@ -338,7 +338,11 @@ contract ChitChat {
         userExists(_friend)
         returns (IPFSMetadata[] memory)
     {
-        require(users[msg.sender].friends[_friend], "Not friends");
+        require(
+            users[msg.sender].friends[_friend] ||
+                users[_friend].friends[msg.sender],
+            "Not friends"
+        );
         return users[msg.sender].encryptedMessageHistory[_friend];
     }
 

@@ -53,6 +53,7 @@ interface Message {
   timestamp: string;
   status: "sent" | "delivered" | "read";
   cid?: string; // IPFS Content ID
+  friendCid?: string; // Friend's IPFS Content ID
 }
 
 interface IPFSMetadata {
@@ -96,6 +97,9 @@ export default function ChatPage() {
   const [isSymmetricKeyModalOpen, setIsSymmetricKeyModalOpen] = useState(false);
   const { address, contracts } = useEthersWithRainbow();
   const { messageEvents } = useChitChatEvents();
+  const [userName, setUserName] = useState("");
+  const [userImage, setUserImage] = useState("");
+  const [friendImageCID, setFriendImageCID] = useState("");
 
   const { uploadFile, isUploading, uploadError, uploadResult } =
     useUploadToPinata();
@@ -139,6 +143,27 @@ export default function ChatPage() {
       shouldDeleteSymmetricKeyFirst(id);
     }
   }, [id]);
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const [name, ipfsHash] = await contracts.chitChat?.getUserInfo(address);
+        setUserName(name);
+        setUserImage(ipfsHash);
+        const [, friendImageCID] = await contracts.chitChat?.getUserInfo(
+          friendId
+        );
+        setFriendImageCID(friendImageCID);
+        // use the name and ipfsHash here
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
+    };
+
+    if (contracts.chitChat) {
+      fetchUserInfo();
+    }
+  }, [contracts.chitChat, address]);
 
   // Process blockchain events for new messages
   useEffect(() => {
@@ -254,9 +279,9 @@ export default function ChatPage() {
         await contracts.chitChat?.getEncryptedMessageHistory(friendId);
       console.log("User to Friend Message History:", user_friend_message);
 
-      const friend_to_message =
-        await contracts.chitChat?.getEncryptedMessageHistory(address);
-      console.log("Friend to User Message History:", friend_to_message);
+      // const friend_to_message =
+      //   await contracts.chitChat?.getEncryptedMessageHistory(address);
+      // console.log("Friend to User Message History:", friend_to_message);
 
       console.log("Message stored on blockchain with CID:", cid);
       return cid;
@@ -319,6 +344,7 @@ export default function ChatPage() {
           );
 
           console.log("Decrypted symmetric key:", symmetricKey);
+          setSymmetricKey(symmetricKey);
         } else {
           throw new Error("No symmetric key available for decryption");
         }
@@ -502,6 +528,7 @@ export default function ChatPage() {
           timestamp: formattedTime,
           status: "delivered",
           cid: ipfsHash,
+          friendCid: messageType == "them" ? friendImageCID : "",
         };
 
         // Add the message to the state
@@ -750,7 +777,9 @@ export default function ChatPage() {
           </Button>
 
           <Avatar className="h-10 w-10">
-            <AvatarImage src={friendImage} />
+            <AvatarImage
+              src={`https://bronze-quickest-snake-412.mypinata.cloud/ipfs/${userImage}`}
+            />
             <AvatarFallback>{friendName.charAt(0)}</AvatarFallback>
           </Avatar>
 
@@ -891,6 +920,7 @@ export default function ChatPage() {
                     sender={msg.sender}
                     timestamp={msg.timestamp}
                     status={msg.status}
+                    friendImageCID={friendImageCID}
                   />
                 ))}
                 <div ref={messagesEndRef} />

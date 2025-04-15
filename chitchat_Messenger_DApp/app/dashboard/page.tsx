@@ -30,6 +30,8 @@ export default function DashboardPage() {
   const { address, contracts } = useEthersWithRainbow();
   const { friendRequests } = useChitChatEvents();
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
+  const [userName, setUserName] = useState("");
+  const [userImage, setUserImage] = useState("");
 
   // Get pending request count for current user
   useEffect(() => {
@@ -44,6 +46,23 @@ export default function DashboardPage() {
 
     setPendingRequestCount(count);
   }, [address, friendRequests]);
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const [name, ipfsHash] = await contracts.chitChat?.getUserInfo(address);
+        setUserName(name);
+        setUserImage(ipfsHash);
+        // use the name and ipfsHash here
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
+    };
+
+    if (contracts.chitChat) {
+      fetchUserInfo();
+    }
+  }, [contracts.chitChat, address]);
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -82,7 +101,9 @@ export default function DashboardPage() {
             className="h-8 w-8 cursor-pointer"
             onClick={() => router.push("/settings")}
           >
-            <AvatarImage src="/placeholder.svg?height=32&width=32" />
+            <AvatarImage
+              src={`https://bronze-quickest-snake-412.mypinata.cloud/ipfs/${userImage}`}
+            />
             <AvatarFallback>
               {address ? address.slice(0, 2) : "JD"}
             </AvatarFallback>
