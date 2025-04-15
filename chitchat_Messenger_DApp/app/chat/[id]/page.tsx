@@ -41,8 +41,10 @@ import { useChitChatEvents } from "@/hooks/useChitChatEvents";
 import { hasPrivateKey } from "@/utils/rsaKeyUtils";
 import { Address } from "viem";
 import { useParams } from "next/navigation";
-import { clearSymmetricKey } from "@/utils/keyStorage";
+import { clearSymmetricKey, saveSymmetricKey } from "@/utils/keyStorage";
 import { set } from "react-hook-form";
+import { SymmetricKeyModal } from "@/components/SymmetricKeyModal";
+import { base64ToUint8Array } from "@/utils/keyFormat";
 
 interface Message {
   id: string;
@@ -91,7 +93,7 @@ export default function ChatPage() {
   const processedMessagesRef = useRef<Set<string>>(new Set());
   // Create a state for the friend ID
   const [friendId, setFriendId] = useState<string>("");
-
+  const [isSymmetricKeyModalOpen, setIsSymmetricKeyModalOpen] = useState(false);
   const { address, contracts } = useEthersWithRainbow();
   const { messageEvents } = useChitChatEvents();
 
@@ -356,6 +358,7 @@ export default function ChatPage() {
 
         console.log("Message to decrypt:", messageData?.message);
         console.log("Symmetric key:", symmetricKey);
+        setSymmetricKey(symmetricKey);
         // Decrypt the message content
         const decryptedContent = await decryptWithSymmetricKey(
           messageData.message,
@@ -702,45 +705,34 @@ export default function ChatPage() {
     fetchAndDecryptMessages();
   };
 
-  // Copy symmetric key to clipboard and proceed
-  const copyKeyToClipboard = async () => {
-    console.log("inside copy function");
-
-    // Get the latest key directly from storage before trying to copy
-    const storedKey = getStoredSymmetricKey(friendId);
-
-    // Update the state with the latest value
-    if (storedKey) {
-      setSymmetricKey(storedKey);
-    }
-
-    // Now use the latest value (either from state or storage)
-    const keyToCopy = getSymmetricKey || storedKey;
-
-    console.log("Symmetric Key:", keyToCopy);
-
-    if (keyToCopy) {
+  // Add this function to your component to handle key import
+  const handleImportSymmetricKey = (key: string) => {
+    if (friendId) {
       try {
-        await navigator.clipboard.writeText(keyToCopy);
-        setKeyCopied(true);
+        // Convert the imported key from Base64 to Uint8Array
+        const keyBytes = base64ToUint8Array(key);
+
+        // Save the imported key
+        saveSymmetricKey(friendId, keyBytes);
+
+        // Update the state
+        setSymmetricKey(key);
+
         toast({
-          title: "Key copied to clipboard",
-          description: "Store this key securely for backup purposes",
+          title: "Key imported successfully",
+          description: "The symmetric key has been imported and saved",
         });
-      } catch (err) {
-        console.error("Failed to copy key:", err);
+
+        // Reload messages with the new key
+        fetchAndDecryptMessages();
+      } catch (error) {
+        console.error("Error importing symmetric key:", error);
         toast({
           variant: "destructive",
-          title: "Failed to copy key",
-          description: "Please try again",
+          title: "Import Failed",
+          description: "Could not import the symmetric key",
         });
       }
-    } else {
-      toast({
-        variant: "destructive",
-        title: "No key available",
-        description: "Could not find the encryption key",
-      });
     }
   };
 
@@ -794,7 +786,7 @@ export default function ChatPage() {
                   }
                   onClick={() =>
                     hasExchangedKeys
-                      ? copyKeyToClipboard()
+                      ? setIsSymmetricKeyModalOpen(true)
                       : setIsKeyExchangeModalOpen(true)
                   }
                 >
@@ -945,6 +937,13 @@ export default function ChatPage() {
         friendName={friendName}
         onKeyExchangeComplete={handleKeyExchangeComplete}
         chitChatContract={contracts.chitChat as Contract}
+      />
+      <SymmetricKeyModal
+        isOpen={isSymmetricKeyModalOpen}
+        onClose={() => setIsSymmetricKeyModalOpen(false)}
+        friendAddress={friendId}
+        symmetricKey={getSymmetricKey}
+        onImport={handleImportSymmetricKey}
       />
     </div>
   );

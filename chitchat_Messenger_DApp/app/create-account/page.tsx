@@ -50,13 +50,13 @@ export default function CreateAccountPage() {
         };
         reader.readAsDataURL(file);
 
-        const cid =
-          "bafkreibdekm75dewxerh7x2hxrlg264qif6yqc6mbzk6rgdgsbldfuetza";
+        // const cid =
+        //   "bafkreibdekm75dewxerh7x2hxrlg264qif6yqc6mbzk6rgdgsbldfuetza";
 
-        // // Upload to Pinata
-        // const result = await uploadFile(file);
-        // console.log("Upload result:", result);
-        // const cid = result?.cid;
+        // Upload to Pinata
+        const result = await uploadFile(file);
+        console.log("Upload result:", result);
+        const cid = result?.cid;
 
         setAvatarCID(cid); // Handle different response formats
 
