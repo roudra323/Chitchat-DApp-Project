@@ -82,9 +82,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [friendName, setFriendName] = useState(friendNameFromQuery);
-  const [friendImage, setFriendImage] = useState(
-    "/placeholder.svg?height=40&width=40"
-  );
+
   const [isKeyExchangeModalOpen, setIsKeyExchangeModalOpen] = useState(false);
   const [hasExchangedKeys, setHasExchangedKeys] = useState(false);
   const [isCheckingKeys, setIsCheckingKeys] = useState(true);
@@ -97,8 +95,6 @@ export default function ChatPage() {
   const [isSymmetricKeyModalOpen, setIsSymmetricKeyModalOpen] = useState(false);
   const { address, contracts } = useEthersWithRainbow();
   const { messageEvents } = useChitChatEvents();
-  const [userName, setUserName] = useState("");
-  const [userImage, setUserImage] = useState("");
   const [friendImageCID, setFriendImageCID] = useState("");
 
   const { uploadFile, isUploading, uploadError, uploadResult } =
@@ -147,9 +143,6 @@ export default function ChatPage() {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const [name, ipfsHash] = await contracts.chitChat?.getUserInfo(address);
-        setUserName(name);
-        setUserImage(ipfsHash);
         const [, friendImageCID] = await contracts.chitChat?.getUserInfo(
           friendId
         );
@@ -460,7 +453,7 @@ export default function ChatPage() {
       try {
         // Check if message already exists in our state
         const messageExists = messages.some(
-          (msg) => msg.id === ipfsHash || msg.cid === ipfsHash
+          (msg) => msg.cid === ipfsHash || (msg.id && msg.id.includes(ipfsHash))
         );
 
         if (messageExists) {
@@ -778,7 +771,7 @@ export default function ChatPage() {
 
           <Avatar className="h-10 w-10">
             <AvatarImage
-              src={`https://bronze-quickest-snake-412.mypinata.cloud/ipfs/${userImage}`}
+              src={`https://bronze-quickest-snake-412.mypinata.cloud/ipfs/${friendImageCID}`}
             />
             <AvatarFallback>{friendName.charAt(0)}</AvatarFallback>
           </Avatar>
